@@ -82,11 +82,15 @@ public class Server {
      * METHOD 1: Printing out a list of all clients connected to the server
      */
     public void listAllClients(){
+        PrintWriter writer = new PrintWriter(outputStream);
+        PrintWriter writer2 = new PrintWriter(outputStream);
+
+        writer2.println("OK LST ");
+        writer2.flush();
+
         for (Client client:clients) {
 
-            PrintWriter writer = new PrintWriter(outputStream);
             writer.println(client.getUsername());
-
             writer.flush();
         }
     }
@@ -105,10 +109,12 @@ public class Server {
 
             PrintWriter writer = new PrintWriter(outputStream);
             writer.println("Invalid Group name, please use letters and numbers only :) e.g MangoJuju6969");
-
             writer.flush();
 
         }else{
+            writer.println("OK CRT Group Created");
+            writer.flush();
+
             Group group = new Group(groupName);
             groups.add(group);
         }
@@ -118,12 +124,16 @@ public class Server {
      * METHOD 3: Listing all the groups connected to the server
      */
     public void listAllGroups(){
+
+        PrintWriter writer = new PrintWriter(outputStream);
+        PrintWriter writer2 = new PrintWriter(outputStream);
+
+        writer.println("OK LST ");
+        writer.flush();
+
         for (Group group:groups) {
-
-            PrintWriter writer = new PrintWriter(outputStream);
-            writer.println(group.getGroupName());
-
-            writer.flush();
+            writer2.println(group.getGroupName());
+            writer2.flush();
         }
     }
 
