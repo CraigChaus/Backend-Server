@@ -9,6 +9,7 @@ public class Server {
     private ArrayList<Client> clients;
     private  ArrayList<Group> groups;
     private String[] commands;
+    private boolean loggedIn;
 
     private InputStream inputStream;
     private OutputStream outputStream;
@@ -83,17 +84,17 @@ public class Server {
      */
     public void listAllClients(){
         PrintWriter writer = new PrintWriter(outputStream);
-        PrintWriter writer2 = new PrintWriter(outputStream);
 
-        writer2.println("OK LST ");
-        writer2.flush();
+        writer.println("OK LST ");
+        writer.flush();
 
         for (Client client:clients) {
 
             writer.println(client.getUsername());
             writer.flush();
         }
-    }
+    }//Include error message after making the login work
+
 
     /**
      * METHOD2: Creating a new group
@@ -126,15 +127,100 @@ public class Server {
     public void listAllGroups(){
 
         PrintWriter writer = new PrintWriter(outputStream);
-        PrintWriter writer2 = new PrintWriter(outputStream);
 
         writer.println("OK LST ");
         writer.flush();
 
         for (Group group:groups) {
-            writer2.println(group.getGroupName());
-            writer2.flush();
+            writer.print(group.getGroupName()+" , ");
+            writer.flush();
         }
     }
 
+    //THIS METHOD IS MEANT TO LIST ALL CLIENTS IN A GROUP
+//    public void listAllClientsInGroup(Group groupName){
+//
+//        PrintWriter writer = new PrintWriter(outputStream);
+//
+//        if(groups.contains(groupName)){
+//
+//            writer.println("OK LST ");
+//            writer.flush();
+//
+//            for (Group group:groups) {
+//                writer.print(group.getClientsInGroup()+" , ");
+//                writer.flush();
+//            }
+//
+//        }
+//    }
+
+    /**
+     * Method 4: Joining an existing group
+     * @param groupName
+     * @param clientName
+     */
+    public void joinGroup(String groupName, String clientName) {
+
+        PrintWriter writer = new PrintWriter(outputStream);
+//IF statement for the logged in user line.
+        for (Group groups:groups) {
+            if(groups.getGroupName().equals(groupName)){
+                for (Client client:clients) {
+                    if(client.getUsername().equals(clientName)){
+
+                        groups.addToGroup(client);
+                        writer.println("OK JOIN");
+                        writer.flush();
+                    }
+                }
+            }else{
+                writer.println("ER06 Group does not exist");
+            }
+        }
+    }
+
+    /**
+     * Method 5: Leaving a group chat
+     * @param groupName
+     * @param userName
+     */
+    public void leaveGroupChat(String groupName, String userName){
+        PrintWriter writer = new PrintWriter(outputStream);
+
+        for (Group group:groups) {
+            if(group.getGroupName().equals(groupName)){
+                for (Client client:clients) {
+                    if(client.getUsername().equals(userName)){
+                        group.removeFromGroup(client);
+                    }
+                }
+            }else{
+                writer.println("ER06 Group does not exist");
+            }
+        }
+    }
+    public ArrayList<Client> getClients() {
+        return clients;
+    }
+
+    public void setClients(ArrayList<Client> clients) {
+        this.clients = clients;
+    }
+
+    public ArrayList<Group> getGroups() {
+        return groups;
+    }
+
+    public void setGroups(ArrayList<Group> groups) {
+        this.groups = groups;
+    }
+
+    public boolean isLoggedIn() {
+        return loggedIn;
+    }
+
+    public void setLoggedIn(boolean loggedIn) {
+        this.loggedIn = loggedIn;
+    }
 }
