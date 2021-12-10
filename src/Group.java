@@ -25,4 +25,19 @@ public class Group {
     public void setClientsInGroup(ArrayList<Client> clientsInGroup) {
         this.clientsInGroup = clientsInGroup;
     }
+    public void addToGroup(Client client){
+
+        for (Client client1: clientsInGroup) {
+            if(!client1.getUsername().equals(client.getUsername())){
+                clientsInGroup.add(client);
+            }
+        }
+    }
+    public void removeFromGroup(Client client){
+        for (Client userName1: clientsInGroup) {
+            if(!userName1.getUsername().equals(client.getUsername())){
+                clientsInGroup.remove(client);
+            }
+        }
+    }
 }
