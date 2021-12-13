@@ -3,7 +3,7 @@ import java.util.ArrayList;
 public class Group {
 
     private String groupName;
-    private ArrayList<Client> clientsInGroup;
+    private ArrayList<ClientHandler> clientsInGroup;
 
     public Group(String groupName){
         this.groupName = groupName;
@@ -18,25 +18,25 @@ public class Group {
         this.groupName = groupName;
     }
 
-    public ArrayList<Client> getClientsInGroup() {
+    public ArrayList<ClientHandler> getClientsInGroup() {
         return clientsInGroup;
     }
 
-    public void setClientsInGroup(ArrayList<Client> clientsInGroup) {
+    public void setClientsInGroup(ArrayList<ClientHandler> clientsInGroup) {
         this.clientsInGroup = clientsInGroup;
     }
-    public void addToGroup(Client client){
+    public void addToGroup(ClientHandler clientHandler){
 
-        for (Client client1: clientsInGroup) {
-            if(!client1.getUsername().equals(client.getUsername())){
-                clientsInGroup.add(client);
+        for (ClientHandler clientHandler1 : clientsInGroup) {
+            if(!clientHandler1.getUsername().equals(clientHandler.getUsername())){
+                clientsInGroup.add(clientHandler);
             }
         }
     }
-    public void removeFromGroup(Client client){
-        for (Client userName1: clientsInGroup) {
-            if(!userName1.getUsername().equals(client.getUsername())){
-                clientsInGroup.remove(client);
+    public void removeFromGroup(ClientHandler clientHandler){
+        for (ClientHandler userName1: clientsInGroup) {
+            if(!userName1.getUsername().equals(clientHandler.getUsername())){
+                clientsInGroup.remove(clientHandler);
             }
         }
     }
