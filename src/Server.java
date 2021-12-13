@@ -6,10 +6,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Server {
-    private ArrayList<Client> clients;
-    private  ArrayList<Group> groups;
+    private ArrayList<ClientHandler> clientHandlers;
+    private ArrayList<Group> groups;
     private String[] commands;
-    private boolean loggedIn;
 
     private InputStream inputStream;
     private OutputStream outputStream;
@@ -17,63 +16,44 @@ public class Server {
     private PrintWriter writer;
 
     public Server() {
-        clients = new ArrayList<>();
+        clientHandlers = new ArrayList<>();
         commands = new String[]{"CONN", "BCST", "QUIT", "AUTH", "LST", "GRP CRT", "GRP LST", "GRP EXIT", "GRP JOIN",
                 "GRP BCST", "PSMG"};
     }
 
     public void startServer() throws IOException {
         var serverSocket = new ServerSocket(1337);
+
         while (true) {
             // Wait for an incoming client-connection request (blocking).
             Socket socket = serverSocket.accept();
             // Your code here:
             // TODO: Start a message processing thread for each connecting client.
-            Thread messageProcessingThread = new Thread(() -> {
-                try {
-                    inputStream = socket.getInputStream();
-                    outputStream = socket.getOutputStream();
+            ClientHandler clientHandler = new ClientHandler(socket, this);
 
-                    serverReader = new BufferedReader(new InputStreamReader(inputStream));
-                    writer = new PrintWriter(outputStream);
-
-                    String receivedMessage = serverReader.readLine();
+            clientHandler.start();
 
 
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
 
-            });
-
-            messageProcessingThread.start();
             // TODO: Start a ping thread for each connecting client.
         }
     }
 
-    public void processMessage(String message) {
-        String[] command = parseMessage(message);
+    public void loginUser(ClientHandler user, String username) {
+        boolean usernameExists = false;
 
-
-    }
-
-    public String[] parseMessage(String message) {
-        String command = message.split(" ")[0];
-        //The first element of the array is command, the second is message
-        String[] commandAndMessage;
-
-        switch (command) {
-            case "GRP":
-                commandAndMessage = new String[]{message.split(" ")[0] + " " + message.split(" ")[1]
-                        , message.split(" ", 3)[2]};
-
-                break;
-            default:
-                commandAndMessage = new String[]{command, message.split(" ")[1]};
-                break;
+        for (ClientHandler client: clientHandlers) {
+            if (username.equalsIgnoreCase(client.getUsername())) {
+                usernameExists = true;
+            }
         }
 
-        return commandAndMessage;
+        if (!usernameExists) {
+            clientHandlers.add(user);
+            user.writeToClient("OK " + username);
+        } else {
+            user.writeToClient("ERR01 This username already exists");
+        }
 
     }
 
@@ -88,9 +68,9 @@ public class Server {
         writer.println("OK LST ");
         writer.flush();
 
-        for (Client client:clients) {
+        for (ClientHandler clientHandler : clientHandlers) {
 
-            writer.println(client.getUsername());
+            writer.println(clientHandler.getUsername());
             writer.flush();
         }
     }//Include error message after making the login work
@@ -166,10 +146,10 @@ public class Server {
 //IF statement for the logged in user line.
         for (Group groups:groups) {
             if(groups.getGroupName().equals(groupName)){
-                for (Client client:clients) {
-                    if(client.getUsername().equals(clientName)){
+                for (ClientHandler clientHandler : clientHandlers) {
+                    if(clientHandler.getUsername().equals(clientName)){
 
-                        groups.addToGroup(client);
+                        groups.addToGroup(clientHandler);
                         writer.println("OK JOIN");
                         writer.flush();
                     }
@@ -190,9 +170,9 @@ public class Server {
 
         for (Group group:groups) {
             if(group.getGroupName().equals(groupName)){
-                for (Client client:clients) {
-                    if(client.getUsername().equals(userName)){
-                        group.removeFromGroup(client);
+                for (ClientHandler clientHandler : clientHandlers) {
+                    if(clientHandler.getUsername().equals(userName)){
+                        group.removeFromGroup(clientHandler);
                     }
                 }
             }else{
@@ -200,12 +180,15 @@ public class Server {
             }
         }
     }
-    public ArrayList<Client> getClients() {
-        return clients;
+
+
+
+    public ArrayList<ClientHandler> getClients() {
+        return clientHandlers;
     }
 
-    public void setClients(ArrayList<Client> clients) {
-        this.clients = clients;
+    public void setClients(ArrayList<ClientHandler> clientHandlers) {
+        this.clientHandlers = clientHandlers;
     }
 
     public ArrayList<Group> getGroups() {
@@ -216,11 +199,4 @@ public class Server {
         this.groups = groups;
     }
 
-    public boolean isLoggedIn() {
-        return loggedIn;
-    }
-
-    public void setLoggedIn(boolean loggedIn) {
-        this.loggedIn = loggedIn;
-    }
 }
