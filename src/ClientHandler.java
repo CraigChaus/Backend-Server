@@ -22,27 +22,32 @@ public class ClientHandler extends Thread {
         this.authenticated = false;
         this.password = " ";
         this.socket = socket;
-
+        this.server = server;
     }
 
     @Override
     public void run() {
-        try {
-            inputStream = socket.getInputStream();
-            outputStream = socket.getOutputStream();
+        while (true) {
+            try {
+                inputStream = socket.getInputStream();
+                outputStream = socket.getOutputStream();
 
-            serverReader = new BufferedReader(new InputStreamReader(inputStream));
-            writer = new PrintWriter(outputStream);
+                serverReader = new BufferedReader(new InputStreamReader(inputStream));
+                writer = new PrintWriter(outputStream);
 
-            String receivedMessage = serverReader.readLine();
+                String receivedMessage = serverReader.readLine();
+
+                processMessage(receivedMessage);
 
 
-        } catch (IOException e) {
-            e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
+
     }
 
-    public void processMessage(String message, PrintWriter writer) {
+    public void processMessage(String message) {
         String[] command = parseMessage(message);
 
         switch (command[0]) {
