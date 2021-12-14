@@ -33,9 +33,8 @@ public class Server {
 
             clientHandler.start();
 
-
-
             // TODO: Start a ping thread for each connecting client.
+
         }
     }
 
@@ -50,15 +49,23 @@ public class Server {
 
         if (!usernameExists) {
             user.setStatus("CONNECTED");
+            user.setUsername(username);
             clientHandlers.add(user);
             user.writeToClient("OK " + username);
-            System.out.println("User "+ username+ " has logged into the server");
-
+            System.out.println("OK " + username);
         } else {
             user.writeToClient("ERR01 This username already exists");
             System.out.println("Username "+username+" already exists");
         }
 
+    }
+
+    public void sendBroadcastToEveryone(ClientHandler user, String message) {
+        for (ClientHandler client: clientHandlers) {
+            client.writeToClient(commands[1] + " " + user.getUsername() + " " + message);
+        }
+
+        user.writeToClient("OK " + commands[1] + " " + message);
     }
 
     //The following are methods meant for different situations
