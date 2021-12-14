@@ -26,7 +26,6 @@ public class Group {
         this.clientsInGroup = clientsInGroup;
     }
     public void addToGroup(ClientHandler clientHandler){
-
         for (ClientHandler clientHandler1 : clientsInGroup) {
             if(!clientHandler1.getUsername().equals(clientHandler.getUsername())){
                 clientsInGroup.add(clientHandler);

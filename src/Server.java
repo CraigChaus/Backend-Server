@@ -49,10 +49,14 @@ public class Server {
         }
 
         if (!usernameExists) {
+            user.setStatus("CONNECTED");
             clientHandlers.add(user);
             user.writeToClient("OK " + username);
+            System.out.println("User "+ username+ " has logged into the server");
+
         } else {
             user.writeToClient("ERR01 This username already exists");
+            System.out.println("Username "+username+" already exists");
         }
 
     }
@@ -73,7 +77,8 @@ public class Server {
             writer.println(clientHandler.getUsername());
             writer.flush();
         }
-    }//Include error message after making the login work
+        System.out.println("Clients listed");
+    }
 
 
     /**
@@ -95,6 +100,7 @@ public class Server {
         }else{
             writer.println("OK CRT Group Created");
             writer.flush();
+            System.out.println("New group: "+groupName+" created");
 
             Group group = new Group(groupName);
             groups.add(group);
@@ -108,6 +114,7 @@ public class Server {
 
         PrintWriter writer = new PrintWriter(outputStream);
 
+
         writer.println("OK LST ");
         writer.flush();
 
@@ -115,6 +122,7 @@ public class Server {
             writer.print(group.getGroupName()+" , ");
             writer.flush();
         }
+        System.out.println("Groups listed");
     }
 
     //THIS METHOD IS MEANT TO LIST ALL CLIENTS IN A GROUP
@@ -152,10 +160,12 @@ public class Server {
                         groups.addToGroup(clientHandler);
                         writer.println("OK JOIN");
                         writer.flush();
+                        System.out.println("Username "+clientName+" joined "+ groupName);
                     }
                 }
             }else{
                 writer.println("ER06 Group does not exist");
+                System.out.println("ER06 Group does not exist");
             }
         }
     }
@@ -173,16 +183,20 @@ public class Server {
                 for (ClientHandler clientHandler : clientHandlers) {
                     if(clientHandler.getUsername().equals(userName)){
                         group.removeFromGroup(clientHandler);
+                        System.out.println("Username "+clientHandler.getUsername()+ " exited "+ groupName);
                     }
                 }
             }else{
                 writer.println("ER06 Group does not exist");
+                System.out.println("ER06 Group does not exist");
             }
         }
     }
 
-
-
+    public void disconnectFromServer(){
+        PrintWriter writer = new PrintWriter(outputStream);
+        
+    }
     public ArrayList<ClientHandler> getClients() {
         return clientHandlers;
     }
