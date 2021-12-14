@@ -7,7 +7,7 @@ public class ClientHandler extends Thread {
     private String status;
     private String username;
     private String password;
-    private boolean authenticated;
+
 
     private Server server;
     private Socket socket;
@@ -19,7 +19,6 @@ public class ClientHandler extends Thread {
     public ClientHandler(Socket socket, Server server) {
         this.status = null;
         this.username = "";
-        this.authenticated = false;
         this.password = " ";
         this.socket = socket;
         this.server = server;
@@ -57,16 +56,22 @@ public class ClientHandler extends Thread {
                 boolean isUsernameAcceptable = checkUsername(username);
 
                 if (!isUsernameAcceptable) {
-                    writer.println("ERR02 Username has an invalid format (only characters, numbers and underscores are allowed)");
-                    writer.flush();
+                    writeToClient("ERR02 Username has an invalid format (only characters, numbers and underscores are allowed)");
                 } else {
                     server.loginUser(this, username);
                 }
+                break;
 
+            case "BCST":
+
+                if (status.equals("CONNECTED")) {
+                    String userMessage = command[1];
+
+                    server.sendBroadcastToEveryone(this, userMessage);
+                } else {
+                    writeToClient("ERR03 Please log in first");
+                }
         }
-
-
-
     }
 
     public String[] parseMessage(String message) {
@@ -81,7 +86,7 @@ public class ClientHandler extends Thread {
 
                 break;
             default:
-                commandAndMessage = new String[]{command, message.split(" ")[1]};
+                commandAndMessage = new String[]{command, message.split(" ", 2)[1]};
                 break;
         }
 
@@ -126,11 +131,4 @@ public class ClientHandler extends Thread {
         this.password = password;
     }
 
-    public boolean isAuthenticated() {
-        return authenticated;
-    }
-
-    public void setAuthenticated(boolean authenticated) {
-        this.authenticated = authenticated;
-    }
 }
