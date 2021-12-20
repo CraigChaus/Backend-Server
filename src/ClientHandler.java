@@ -38,7 +38,6 @@ public class ClientHandler extends Thread {
 
                 processMessage(receivedMessage);
 
-
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -89,9 +88,7 @@ public class ClientHandler extends Thread {
                 commandAndMessage = new String[]{command, message.split(" ", 2)[1]};
                 break;
         }
-
         return commandAndMessage;
-
     }
 
     public boolean checkUsername(String username) {
@@ -106,6 +103,9 @@ public class ClientHandler extends Thread {
         writer.println(message);
         writer.flush();
     }
+
+
+
 
     public String getStatus() {
         return status;

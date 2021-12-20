@@ -1,6 +1,12 @@
+import org.springframework.security.crypto.bcrypt.BCrypt;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -8,7 +14,7 @@ import java.util.regex.Pattern;
 public class Server {
     private ArrayList<ClientHandler> clientHandlers;
     private ArrayList<Group> groups;
-    private String[] commands;
+    private final String[] commands;
 
     private InputStream inputStream;
     private OutputStream outputStream;
@@ -17,7 +23,7 @@ public class Server {
 
     public Server() {
         clientHandlers = new ArrayList<>();
-        commands = new String[]{"CONN", "BCST", "QUIT", "AUTH", "LST", "GRP CRT", "GRP LST", "GRP EXIT", "GRP JOIN",
+        commands = new String[]{"CONN", "BCST", "QUIT", "PASS","AUTH", "LST", "GRP CRT", "GRP LST", "GRP EXIT", "GRP JOIN",
                 "GRP BCST", "PSMG"};
     }
 
@@ -34,7 +40,78 @@ public class Server {
             clientHandler.start();
 
             // TODO: Start a ping thread for each connecting client.
+        }
+    }
 
+    /**
+     *
+     * @param password
+     * @param clientHandler
+     * @throws IOException
+     * @throws NoSuchAlgorithmException
+     * Password verification method
+     */
+    public void authenticateMe(String password,ClientHandler clientHandler){
+
+        for (ClientHandler client:clientHandlers) {
+            if(client.getUsername().equals(clientHandler.getUsername())){
+                if(client.getStatus().equals("AUTHENTICATED")){
+                    client.writeToClient("ERR11 Already authenticated");
+                }else{
+                    if(client.getPassword().equals("")){
+                        client.writeToClient("ERR 12 Create password");
+                    }else if(BCrypt.checkpw(password,client.getPassword())){
+                        client.setStatus("AUTHENTICATED");
+                        client.writeToClient("OK AUTH");
+                        //TODO: Implement authentication feature for noticing authed usernames
+                    }
+                }
+            }else{
+                clientHandler.writeToClient("ERR12 This is not your username");
+            }
+        }
+    }
+
+    /**
+     *
+     * @param passWord
+     * @param clientHandler
+     * @throws NoSuchAlgorithmException
+     * create password method
+     */
+    public void createPassword(String passWord,ClientHandler clientHandler) throws NoSuchAlgorithmException {
+        for (ClientHandler client:clientHandlers) {
+            if((client.getUsername().equals(clientHandler.getUsername()))&&(!client.getPassword().equals(passWord))) {
+                if((passWord.length() >= 8)){
+                    Pattern pattern = Pattern.compile("[- !@#$%^&*()+=|/?.>,<`~]", Pattern.CASE_INSENSITIVE);
+                    Matcher matcher = pattern.matcher(passWord);
+                    boolean matchFound = matcher.find();
+
+                    if(matchFound){
+                        SecureRandom random = new SecureRandom();
+                        byte[] salt = new byte[16];
+                        random.nextBytes(salt);
+
+                        MessageDigest md = MessageDigest.getInstance("SHA-512");
+                        md.update(salt);
+
+                        byte[] hashedPassword = md.digest(passWord.getBytes(StandardCharsets.UTF_8));
+
+                        String hashedPasswordCreated = new String(hashedPassword, StandardCharsets.UTF_8);
+
+                        client.writeToClient("OK PASS");
+                        client.setPassword(hashedPasswordCreated);
+                        System.out.println("password created");
+                    }else{
+                        client.writeToClient("ERR08 Weak Password");
+                        System.out.println("Weak password");
+                    }
+                    break;
+                }else{
+                    client.writeToClient("ERR10 Invalid password");
+                    System.out.println("Invalid password");
+                }
+            }
         }
     }
 
@@ -57,7 +134,6 @@ public class Server {
             user.writeToClient("ERR01 This username already exists");
             System.out.println("Username "+username+" already exists");
         }
-
     }
 
     public void sendBroadcastToEveryone(ClientHandler user, String message) {
@@ -81,7 +157,11 @@ public class Server {
 
         for (ClientHandler clientHandler : clientHandlers) {
 
-            writer.println(clientHandler.getUsername());
+            if(clientHandler.getStatus().equals("AUTHENTICATED")) {
+                writer.println(1 + " " + clientHandler.getUsername());
+            }else{
+                writer.println(0 + " " + clientHandler.getUsername());
+            }
             writer.flush();
         }
         System.out.println("Clients listed");
