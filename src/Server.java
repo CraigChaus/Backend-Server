@@ -1,6 +1,6 @@
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -14,17 +14,13 @@ import java.util.regex.Pattern;
 public class Server {
     private ArrayList<ClientHandler> clientHandlers;
     private ArrayList<Group> groups;
-    private final String[] commands;
-
-    private InputStream inputStream;
-    private OutputStream outputStream;
-    private BufferedReader serverReader;
-    private PrintWriter writer;
+    private String[] commands;
 
     public Server() {
         clientHandlers = new ArrayList<>();
-        commands = new String[]{"CONN", "BCST", "QUIT", "PASS","AUTH", "LST", "GRP CRT", "GRP LST", "GRP EXIT", "GRP JOIN",
-                "GRP BCST", "PSMG"};
+        this.groups = new ArrayList<>();
+        commands = new String[]{"CONN", "BCST", "QUIT", "AUTH", "LST", "GRP CRT", "GRP LST", "GRP EXIT", "GRP JOIN",
+                "GRP BCST", "PMSG"};
     }
 
     public void startServer() throws IOException {
@@ -36,12 +32,38 @@ public class Server {
             // Your code here:
             // TODO: Start a message processing thread for each connecting client.
             ClientHandler clientHandler = new ClientHandler(socket, this);
-
             clientHandler.start();
 
             // TODO: Start a ping thread for each connecting client.
+
+            PingPongThread pongThread = new PingPongThread(socket.getOutputStream());
+            pongThread.start();
+
         }
     }
+
+    public void loginUser(ClientHandler user, String username) {
+        boolean usernameExists = false;
+
+        for (ClientHandler client: clientHandlers) {
+            if (username.equalsIgnoreCase(client.getUsername())) {
+                usernameExists = true;
+            }
+        }
+
+        if (!usernameExists) {
+            user.setStatus(Statuses.LOGGED_IN);
+            user.setUsername(username);
+            clientHandlers.add(user);
+            user.writeToClient("OK CONN " + username);
+            System.out.println("OK CONN " + username);
+
+        } else {
+            user.writeToClient("ERR01 This username already exists");
+        }
+
+    }
+
 
     /**
      *
@@ -61,7 +83,7 @@ public class Server {
                     if(client.getPassword().equals("")){
                         client.writeToClient("ERR 12 Create password");
                     }else if(BCrypt.checkpw(password,client.getPassword())){
-                        client.setStatus("AUTHENTICATED");
+                        client.setStatus(Statuses.AUTHENTICATED);
                         client.writeToClient("OK AUTH");
                         //TODO: Implement authentication feature for noticing authed usernames
                     }
@@ -115,27 +137,6 @@ public class Server {
         }
     }
 
-    public void loginUser(ClientHandler user, String username) {
-        boolean usernameExists = false;
-
-        for (ClientHandler client: clientHandlers) {
-            if (username.equalsIgnoreCase(client.getUsername())) {
-                usernameExists = true;
-            }
-        }
-
-        if (!usernameExists) {
-            user.setStatus("CONNECTED");
-            user.setUsername(username);
-            clientHandlers.add(user);
-            user.writeToClient("OK " + username);
-            System.out.println("OK " + username);
-        } else {
-            user.writeToClient("ERR01 This username already exists");
-            System.out.println("Username "+username+" already exists");
-        }
-    }
-
     public void sendBroadcastToEveryone(ClientHandler user, String message) {
         for (ClientHandler client: clientHandlers) {
             client.writeToClient(commands[1] + " " + user.getUsername() + " " + message);
@@ -149,22 +150,25 @@ public class Server {
     /**
      * METHOD 1: Printing out a list of all clients connected to the server
      */
-    public void listAllClients(){
-        PrintWriter writer = new PrintWriter(outputStream);
+    public void listAllClients(ClientHandler client) {
+        String clientsList = "";
 
-        writer.println("OK LST ");
-        writer.flush();
-
-        for (ClientHandler clientHandler : clientHandlers) {
-
-            if(clientHandler.getStatus().equals("AUTHENTICATED")) {
-                writer.println(1 + " " + clientHandler.getUsername());
-            }else{
-                writer.println(0 + " " + clientHandler.getUsername());
+        for (int i = 0; i < clientHandlers.size(); i++) {
+            ClientHandler loopingClient = clientHandlers.get(i);
+            int authenticated = 0;
+            if (loopingClient.checkIfAuthenticated()) {
+                authenticated = 1;
             }
-            writer.flush();
+
+            clientsList += authenticated + " " + loopingClient;
+
+            if (i < clientHandlers.size() - 1) {
+                clientsList += ",";
+            }
         }
-        System.out.println("Clients listed");
+
+        client.writeToClient("OK " + commands[4] + " " + clientsList);
+        System.out.println("OK " + commands[4] + " " + clientsList);
     }
 
 
@@ -172,7 +176,7 @@ public class Server {
      * METHOD2: Creating a new group
      * @param groupName
      */
-    public void createGroup(String groupName){
+    public void createGroup(String groupName, ClientHandler client){
 
         Pattern pattern = Pattern.compile("[- !@#$%^&*()+=|/?.>,<`~]", Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(groupName);
@@ -180,40 +184,43 @@ public class Server {
 
         if(matchFound){
 
-            PrintWriter writer = new PrintWriter(outputStream);
-            writer.println("Invalid Group name, please use letters and numbers only :) e.g MangoJuju6969");
-            writer.flush();
+            client.writeToClient("Invalid client.client.Group name, please use letters and numbers only :) e.g MangoJuju6969");
 
         }else{
-            writer.println("OK CRT Group Created");
-            writer.flush();
-            System.out.println("New group: "+groupName+" created");
+            boolean exists = false;
 
-            Group group = new Group(groupName);
-            groups.add(group);
+            for (Group group: groups) {
+                if (group.getGroupName().equals(groupName)) {
+                    exists = true;
+                    break;
+                }
+            }
+
+            if (!exists) {
+                groups.add(new Group(groupName));
+                client.writeToClient("OK CRT");
+                System.out.println("OK CRT " + client.getUsername());
+            }
         }
     }
 
     /**
      * METHOD 3: Listing all the groups connected to the server
      */
-    public void listAllGroups(){
+    public void listAllGroups(ClientHandler client){
 
-        PrintWriter writer = new PrintWriter(outputStream);
-
-
-        writer.println("OK LST ");
-        writer.flush();
+        String response = "OK LST ";
 
         for (Group group:groups) {
-            writer.print(group.getGroupName()+" , ");
-            writer.flush();
+            response += group.getGroupName()+", ";
         }
-        System.out.println("Groups listed");
+
+        client.writeToClient(response);
+        System.out.println("OK LST");
     }
 
     //THIS METHOD IS MEANT TO LIST ALL CLIENTS IN A GROUP
-//    public void listAllClientsInGroup(Group groupName){
+//    public void listAllClientsInGroup(client.client.Group groupName){
 //
 //        PrintWriter writer = new PrintWriter(outputStream);
 //
@@ -222,7 +229,7 @@ public class Server {
 //            writer.println("OK LST ");
 //            writer.flush();
 //
-//            for (Group group:groups) {
+//            for (client.client.Group group:groups) {
 //                writer.print(group.getClientsInGroup()+" , ");
 //                writer.flush();
 //            }
@@ -233,57 +240,101 @@ public class Server {
     /**
      * Method 4: Joining an existing group
      * @param groupName
-     * @param clientName
+     * @param client
      */
-    public void joinGroup(String groupName, String clientName) {
+    public void joinGroup(String groupName, ClientHandler client) {
+        boolean exist = false;
 
-        PrintWriter writer = new PrintWriter(outputStream);
-//IF statement for the logged in user line.
-        for (Group groups:groups) {
-            if(groups.getGroupName().equals(groupName)){
-                for (ClientHandler clientHandler : clientHandlers) {
-                    if(clientHandler.getUsername().equals(clientName)){
+        //IF statement for the logged in user line.
+        for (Group group: groups) {
+            if(group.getGroupName().equals(groupName)){
 
-                        groups.addToGroup(clientHandler);
-                        writer.println("OK JOIN");
-                        writer.flush();
-                        System.out.println("Username "+clientName+" joined "+ groupName);
-                    }
+                if (!group.getClientsInGroup().contains(client)) {
+                    group.addToGroup(client);
+                    client.writeToClient("OK JOIN");
+                    System.out.println("OK JOIN");
+                } else {
+                    client.writeToClient("ERR18 You are already in this group!");
+                    System.out.println("ERR18 You are already in this group!");
                 }
-            }else{
-                writer.println("ER06 Group does not exist");
-                System.out.println("ER06 Group does not exist");
+
+                exist = true;
             }
+        }
+
+        if (!exist) {
+            client.writeToClient("ER06 client.Group does not exist");
+            System.out.println("ER06 client.Group does not exist");
         }
     }
 
     /**
      * Method 5: Leaving a group chat
      * @param groupName
-     * @param userName
+     * @param client
      */
-    public void leaveGroupChat(String groupName, String userName){
-        PrintWriter writer = new PrintWriter(outputStream);
+    public void leaveGroupChat(String groupName, ClientHandler client){
+        boolean exist = false;
 
         for (Group group:groups) {
             if(group.getGroupName().equals(groupName)){
-                for (ClientHandler clientHandler : clientHandlers) {
-                    if(clientHandler.getUsername().equals(userName)){
-                        group.removeFromGroup(clientHandler);
-                        System.out.println("Username "+clientHandler.getUsername()+ " exited "+ groupName);
-                    }
-                }
-            }else{
-                writer.println("ER06 Group does not exist");
-                System.out.println("ER06 Group does not exist");
+                exist = true;
+                group.removeFromGroup(client);
+                client.writeToClient("OK EXIT");
             }
+        }
+
+        if (!exist) {
+            client.writeToClient("ERR06 client.Group does not exist!");
         }
     }
 
-    public void disconnectFromServer(){
-        PrintWriter writer = new PrintWriter(outputStream);
-        
+    /**
+     * Sending private message
+     * @param sender
+     * @param receiverName
+     * @param message
+     */
+    public void sendPrivateMessage(ClientHandler sender, String receiverName, String message) {
+        boolean exist = false;
+
+        for (ClientHandler client: clientHandlers) {
+            if (client.getUsername().equals(receiverName)) {
+                exist = true;
+                client.writeToClient("PMSG " + sender.getUsername() + " " + message);
+                sender.writeToClient("OK PMSG");
+                System.out.println("OK PMSG");
+            }
+        }
+
+        if (!exist) {
+            sender.writeToClient("ERR... Client does not exist!");
+            System.out.println("ERR... Client does not exist!");
+        }
     }
+
+    public void sendBroadcastToGroup(ClientHandler sender, String groupName, String message) {
+        boolean exist = false;
+
+        for (Group group: groups) {
+            if (group.getGroupName().equals(groupName)) {
+                exist = true;
+
+                if (group.getClientsInGroup().contains(sender)) {
+                    for (ClientHandler clientHandler: group.getClientsInGroup()) {
+                        clientHandler.writeToClient(message);
+                    }
+                }
+            }
+        }
+
+        if (!exist) {
+            sender.writeToClient("ERR... client.Group does not exist!");
+        }
+
+
+    }
+
     public ArrayList<ClientHandler> getClients() {
         return clientHandlers;
     }
@@ -299,5 +350,7 @@ public class Server {
     public void setGroups(ArrayList<Group> groups) {
         this.groups = groups;
     }
+
+
 
 }
