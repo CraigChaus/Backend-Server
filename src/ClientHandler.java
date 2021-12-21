@@ -1,10 +1,12 @@
 import java.io.*;
 import java.net.Socket;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ClientHandler extends Thread {
-    private String status;
+    private Statuses status;
     private String username;
     private String password;
 
@@ -15,6 +17,7 @@ public class ClientHandler extends Thread {
     private OutputStream outputStream;
     private BufferedReader serverReader;
     private PrintWriter writer;
+    private String receivedMessage;
 
     public ClientHandler(Socket socket, Server server) {
         this.status = null;
@@ -31,12 +34,28 @@ public class ClientHandler extends Thread {
                 inputStream = socket.getInputStream();
                 outputStream = socket.getOutputStream();
 
+                Instant start = Instant.now();
                 serverReader = new BufferedReader(new InputStreamReader(inputStream));
                 writer = new PrintWriter(outputStream);
 
-                String receivedMessage = serverReader.readLine();
+                receivedMessage = serverReader.readLine();
 
-                processMessage(receivedMessage);
+                if (receivedMessage.equals("PONG")) {
+                    System.out.println("<<<< PONG");
+                } else {
+                    Instant end = Instant.now();
+
+                    long duration = Duration.between(start, end).toMillis();
+
+                    if (duration >= 3000) {
+                        System.out.println("NO ANSWER FROM CLIENT!!!");
+                    }
+
+                }
+
+                if (!receivedMessage.equals("PONG")) {
+                    processMessage(receivedMessage);
+                }
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -63,13 +82,54 @@ public class ClientHandler extends Thread {
 
             case "BCST":
 
-                if (status.equals("CONNECTED")) {
+                if (checkIfLoggedIn()) {
                     String userMessage = command[1];
 
                     server.sendBroadcastToEveryone(this, userMessage);
-                } else {
-                    writeToClient("ERR03 Please log in first");
                 }
+
+                break;
+
+            case "LST":
+
+                if (checkIfLoggedIn()) {
+                    server.listAllClients(this);
+                }
+
+                break;
+
+            case "GRP CRT":
+                if (checkIfLoggedIn()) {
+                    server.createGroup(command[1], this);
+                }
+
+                break;
+
+            case "GRP JOIN":
+                if (checkIfLoggedIn()) {
+                    server.joinGroup(command[1], this);
+                }
+
+                break;
+
+            case "GRP LST":
+                if (checkIfLoggedIn()) {
+                    server.listAllGroups(this);
+                }
+
+                break;
+
+            case "GRP BCST":
+                if (checkIfLoggedIn()) {
+                    server.sendBroadcastToGroup(this, command[1], command[2]);
+                }
+
+            case "PMSG":
+                if (checkIfLoggedIn()) {
+                    server.sendPrivateMessage(this, command[1], command[2]);
+                }
+
+                break;
         }
     }
 
@@ -80,15 +140,28 @@ public class ClientHandler extends Thread {
 
         switch (command) {
             case "GRP":
-                commandAndMessage = new String[]{message.split(" ")[0] + " " + message.split(" ")[1]
-                        , message.split(" ", 3)[2]};
+                if (message.split(" ")[1].equals("BCST")) {
+                    String[] splitMessage = message.split(" ", 4);
+                    commandAndMessage = new String[]{splitMessage[0] + " " + splitMessage[1], splitMessage[2], splitMessage[3]};
+                } else {
+                    commandAndMessage = new String[]{message.split(" ")[0] + " " + message.split(" ")[1]
+                            , message.split(" ", 3)[2]};
+                }
 
                 break;
+
+            case "PMSG":
+                String[] splitMessage = message.split(" ", 3);
+                commandAndMessage = new String[]{splitMessage[0], splitMessage[1], splitMessage[2]};
+                break;
+
             default:
                 commandAndMessage = new String[]{command, message.split(" ", 2)[1]};
                 break;
         }
+
         return commandAndMessage;
+
     }
 
     public boolean checkUsername(String username) {
@@ -104,14 +177,24 @@ public class ClientHandler extends Thread {
         writer.flush();
     }
 
+    public boolean checkIfLoggedIn() {
+        if (status.equals(Statuses.LOGGED_IN)) {
+            return true;
+        } else {
+            writeToClient("ERR03 Please log in first");
+            return false;
+        }
+    }
 
+    public boolean checkIfAuthenticated() {
+        return status.equals(Statuses.AUTHENTICATED);
+    }
 
-
-    public String getStatus() {
+    public Statuses getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(Statuses status) {
         this.status = status;
     }
 
@@ -131,4 +214,7 @@ public class ClientHandler extends Thread {
         this.password = password;
     }
 
+    public PrintWriter getWriter() {
+        return writer;
+    }
 }
