@@ -1,3 +1,8 @@
+package server;
+
+import client.ClientHandler;
+import client.Group;
+import client.Statuses;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 
 import java.io.IOException;
@@ -63,7 +68,6 @@ public class Server {
         }
 
     }
-
 
     /**
      *
@@ -171,10 +175,9 @@ public class Server {
         System.out.println("OK " + commands[4] + " " + clientsList);
     }
 
-
     /**
      * METHOD2: Creating a new group
-     * @param groupName
+     * @param groupName name of the group that user wants to create
      */
     public void createGroup(String groupName, ClientHandler client){
 
@@ -184,7 +187,7 @@ public class Server {
 
         if(matchFound){
 
-            client.writeToClient("Invalid client.client.Group name, please use letters and numbers only :) e.g MangoJuju6969");
+            client.writeToClient("Invalid client.client.client.Group name, please use letters and numbers only :) e.g MangoJuju6969");
 
         }else{
             boolean exists = false;
@@ -220,7 +223,7 @@ public class Server {
     }
 
     //THIS METHOD IS MEANT TO LIST ALL CLIENTS IN A GROUP
-//    public void listAllClientsInGroup(client.client.Group groupName){
+//    public void listAllClientsInGroup(client.client.client.Group groupName){
 //
 //        PrintWriter writer = new PrintWriter(outputStream);
 //
@@ -229,7 +232,7 @@ public class Server {
 //            writer.println("OK LST ");
 //            writer.flush();
 //
-//            for (client.client.Group group:groups) {
+//            for (client.client.client.Group group:groups) {
 //                writer.print(group.getClientsInGroup()+" , ");
 //                writer.flush();
 //            }
@@ -263,8 +266,8 @@ public class Server {
         }
 
         if (!exist) {
-            client.writeToClient("ER06 client.Group does not exist");
-            System.out.println("ER06 client.Group does not exist");
+            client.writeToClient("ER06 client.client.Group does not exist");
+            System.out.println("ER06 client.client.Group does not exist");
         }
     }
 
@@ -285,7 +288,7 @@ public class Server {
         }
 
         if (!exist) {
-            client.writeToClient("ERR06 client.Group does not exist!");
+            client.writeToClient("ERR06 client.client.Group does not exist!");
         }
     }
 
@@ -329,7 +332,7 @@ public class Server {
         }
 
         if (!exist) {
-            sender.writeToClient("ERR... client.Group does not exist!");
+            sender.writeToClient("ERR... client.client.Group does not exist!");
         }
 
 

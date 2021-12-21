@@ -1,3 +1,7 @@
+package client;
+
+import server.Server;
+
 import java.io.*;
 import java.net.Socket;
 import java.time.Duration;

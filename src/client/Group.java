@@ -1,3 +1,7 @@
+package client;
+
+import client.ClientHandler;
+
 import java.util.ArrayList;
 
 public class Group {
