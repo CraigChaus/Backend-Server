@@ -116,6 +116,11 @@ public class ClientHandler extends Thread {
                     server.sendBroadcastToGroup(this, command[1], command[2]);
                 }
 
+            case "GRP EXIT":
+                if (checkIfLoggedIn()) {
+                    server.leaveGroupChat(command[1], this);
+                }
+
             case "PMSG":
                 if (checkIfLoggedIn()) {
                     server.sendPrivateMessage(this, command[1], command[2]);

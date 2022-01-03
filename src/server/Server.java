@@ -187,7 +187,7 @@ public class Server {
 
         if(matchFound){
 
-            client.writeToClient("Invalid client.client.client.Group name, please use letters and numbers only :) e.g MangoJuju6969");
+            client.writeToClient("Invalid Group name, please use letters and numbers only :) e.g MangoJuju6969");
 
         }else{
             boolean exists = false;
@@ -266,8 +266,8 @@ public class Server {
         }
 
         if (!exist) {
-            client.writeToClient("ER06 client.client.Group does not exist");
-            System.out.println("ER06 client.client.Group does not exist");
+            client.writeToClient("ER06 Group does not exist");
+            System.out.println("ER06 Group does not exist");
         }
     }
 
@@ -325,7 +325,7 @@ public class Server {
 
                 if (group.getClientsInGroup().contains(sender)) {
                     for (ClientHandler clientHandler: group.getClientsInGroup()) {
-                        clientHandler.writeToClient(message);
+                        clientHandler.writeToClient("GRP BCST " + groupName + " " + sender.getUsername() + " " + message);
                     }
                 }
             }
