@@ -4,6 +4,8 @@ import server.Server;
 
 import java.io.*;
 import java.net.Socket;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.regex.Matcher;
@@ -184,6 +186,31 @@ public class ClientHandler extends Thread {
             return false;
         }
     }
+
+    public String getChecksum(String filepath) throws IOException, NoSuchAlgorithmException {
+
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        // DigestInputStream is better, but you also can hash file like this.
+        try (InputStream fis = new FileInputStream(filepath)) {
+            byte[] buffer = new byte[1024];
+            int readNo;
+            while ((readNo = fis.read(buffer)) != -1) {
+                md.update(buffer, 0, readNo);
+            }
+        }
+        // bytes to hex
+        StringBuilder result = new StringBuilder();
+        for (byte b : md.digest()) {
+            result.append(String.format("%02x", b));
+        }
+        return result.toString();
+    }
+
+    public boolean checksumFileCheck(String senderChecksum,String receiverChecksum){
+        return senderChecksum.equals(receiverChecksum);
+    }
+
+
 
     public boolean checkIfAuthenticated() {
         return status.equals(Statuses.AUTHENTICATED);
