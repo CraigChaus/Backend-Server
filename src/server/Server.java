@@ -25,7 +25,7 @@ public class Server {
         clientHandlers = new ArrayList<>();
         this.groups = new ArrayList<>();
         commands = new String[]{"CONN", "BCST", "QUIT", "AUTH", "LST", "GRP CRT", "GRP LST", "GRP EXIT", "GRP JOIN",
-                "GRP BCST", "PMSG"};
+                "GRP BCST", "PMSG","FIL ACK","FIL SND","INC"};
     }
 
     public void startServer() throws IOException {
@@ -309,11 +309,58 @@ public class Server {
                 System.out.println("OK PMSG");
             }
         }
-
         if (!exist) {
             sender.writeToClient("ERR... Client does not exist!");
             System.out.println("ERR... Client does not exist!");
         }
+    }
+
+    /**
+     * Method to send an acknowledgement to a client
+     * @param sender Name of client sender
+     * @param receiverName name of client receiver
+     */
+    public void sendAcknowledgement(ClientHandler sender, String receiverName){
+        boolean exist = false;
+
+        for (ClientHandler client: clientHandlers) {
+            if (client.getUsername().equals(receiverName)) {
+                exist = true;
+                client.writeToClient("ACK "+ sender.getUsername());
+                System.out.println("ACK forwarded to client "+client.getUsername());
+            }
+        }
+        if (!exist) {
+            sender.writeToClient("ERR03 Please log in first");
+            System.out.println("ERR07 Username does not exist");
+        }
+    }
+
+    /**
+     * Method to respond to an acknowledgement
+     * @param sender name of the sender client
+     * @param receiverName name of the receiver client
+     * @param response the message input by the client
+     * @return the boolean result
+     */
+    public boolean respondToAck(ClientHandler sender,String receiverName,String response){
+
+        boolean result = false;
+
+        for (ClientHandler client: clientHandlers) {
+            if (client.getUsername().equals(receiverName)) {
+                if(response.equals("ACC "+ sender.getUsername())){
+                    sender.writeToClient("FIL ACC "+ client.getUsername());
+                    sender.writeToClient("INFO: Ready for file transmission");
+                     result = true;
+                }else if(response.equals("DEC "+sender.getUsername())){
+                    sender.writeToClient("FIL DEC "+client.getUsername());
+                    sender.writeToClient("INFO: File transmission cannot be done");
+                     result = false;
+                }
+            }
+        }
+       return result;
     }
 
     public void sendBroadcastToGroup(ClientHandler sender, String groupName, String message) {
@@ -330,12 +377,9 @@ public class Server {
                 }
             }
         }
-
         if (!exist) {
             sender.writeToClient("ERR... client.client.Group does not exist!");
         }
-
-
     }
 
     public ArrayList<ClientHandler> getClients() {

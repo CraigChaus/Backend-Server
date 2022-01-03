@@ -128,6 +128,12 @@ public class ClientHandler extends Thread {
                     server.sendPrivateMessage(this, command[1], command[2]);
                 }
 
+                //TODO:Check this line out .........
+            case "FIL ACK":
+                if(checkIfLoggedIn()){
+                    server.respondToAck(this,command[1],command[2]);
+                }
+
                 break;
         }
     }
@@ -154,6 +160,19 @@ public class ClientHandler extends Thread {
             case "PMSG":
                 String[] splitMessage = message.split(" ", 3);
                 commandAndMessage = new String[]{splitMessage[0], splitMessage[1], splitMessage[2]};
+                break;
+
+            case "FIL":
+                if (message.split(" ")[1].equals("ACK")) {
+                    String[] splitMessageAck = message.split(" ");
+                    commandAndMessage = new String[]{splitMessageAck[0] + " " + splitMessageAck[1], splitMessageAck[2]};
+                } else if (!message.split(" ")[1].equals("SND")) {
+                    String[] splitMessageSnd = message.split(" ");
+                    commandAndMessage = new String[]{splitMessageSnd[0] + " " + splitMessageSnd[1],splitMessageSnd[2],splitMessageSnd[3]};
+                } else {
+                    commandAndMessage = new String[]{};
+                }
+
                 break;
 
             default:
