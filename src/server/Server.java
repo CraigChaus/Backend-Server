@@ -212,14 +212,14 @@ public class Server {
      */
     public void listAllGroups(ClientHandler client){
 
-        String response = "OK LST ";
+        String response = "OK GRPLST ";
 
         for (Group group:groups) {
             response += group.getGroupName()+", ";
         }
 
         client.writeToClient(response);
-        System.out.println("OK LST");
+        System.out.println("OK GRPLST");
     }
 
     //THIS METHOD IS MEANT TO LIST ALL CLIENTS IN A GROUP
@@ -254,7 +254,7 @@ public class Server {
 
                 if (!group.getClientsInGroup().contains(client)) {
                     group.addToGroup(client);
-                    client.writeToClient("OK JOIN");
+                    client.writeToClient("OK JOIN " + groupName);
                     System.out.println("OK JOIN");
                 } else {
                     client.writeToClient("ERR18 You are already in this group!");

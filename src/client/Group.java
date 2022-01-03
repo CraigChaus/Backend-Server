@@ -11,7 +11,7 @@ public class Group {
 
     public Group(String groupName){
         this.groupName = groupName;
-        this.clientsInGroup = null;
+        this.clientsInGroup = new ArrayList<>();
     }
 
     public String getGroupName() {
@@ -26,9 +26,6 @@ public class Group {
         return clientsInGroup;
     }
 
-    public void setClientsInGroup(ArrayList<ClientHandler> clientsInGroup) {
-        this.clientsInGroup = clientsInGroup;
-    }
     public void addToGroup(ClientHandler clientHandler){
         for (ClientHandler clientHandler1 : clientsInGroup) {
             if(!clientHandler1.getUsername().equals(clientHandler.getUsername())){

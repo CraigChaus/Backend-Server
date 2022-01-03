@@ -38,7 +38,6 @@ public class ClientHandler extends Thread {
                 inputStream = socket.getInputStream();
                 outputStream = socket.getOutputStream();
 
-                Instant start = Instant.now();
                 serverReader = new BufferedReader(new InputStreamReader(inputStream));
                 writer = new PrintWriter(outputStream);
 
@@ -47,17 +46,6 @@ public class ClientHandler extends Thread {
                 if (receivedMessage.equals("PONG")) {
                     System.out.println("<<<< PONG");
                 } else {
-                    Instant end = Instant.now();
-
-                    long duration = Duration.between(start, end).toMillis();
-
-                    if (duration >= 3000) {
-                        System.out.println("NO ANSWER FROM CLIENT!!!");
-                    }
-
-                }
-
-                if (!receivedMessage.equals("PONG")) {
                     processMessage(receivedMessage);
                 }
 
@@ -147,9 +135,11 @@ public class ClientHandler extends Thread {
                 if (message.split(" ")[1].equals("BCST")) {
                     String[] splitMessage = message.split(" ", 4);
                     commandAndMessage = new String[]{splitMessage[0] + " " + splitMessage[1], splitMessage[2], splitMessage[3]};
-                } else {
+                } else if (!message.split(" ")[1].equals("LST")) {
                     commandAndMessage = new String[]{message.split(" ")[0] + " " + message.split(" ")[1]
                             , message.split(" ", 3)[2]};
+                } else {
+                    commandAndMessage = new String[]{message.split(" ")[0] + " " + message.split(" ")[1]};
                 }
 
                 break;
