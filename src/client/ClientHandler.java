@@ -1,5 +1,6 @@
 package client;
 
+import server.FileTransferHandler;
 import server.Server;
 
 import java.io.*;
@@ -16,6 +17,7 @@ public class ClientHandler extends Thread {
 
 
     private Server server;
+    private FileTransferHandler fileTransferHandler;
     private Socket socket;
     private InputStream inputStream;
     private OutputStream outputStream;
@@ -23,12 +25,13 @@ public class ClientHandler extends Thread {
     private PrintWriter writer;
     private String receivedMessage;
 
-    public ClientHandler(Socket socket, Server server) {
+    public ClientHandler(Socket socket,FileTransferHandler fileTransferHandler, Server server) {
         this.status = null;
         this.username = "";
         this.password = " ";
         this.socket = socket;
         this.server = server;
+        this.fileTransferHandler = fileTransferHandler;
     }
 
     @Override
