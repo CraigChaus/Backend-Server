@@ -30,13 +30,15 @@ public class Server {
 
     public void startServer() throws IOException {
         var serverSocket = new ServerSocket(1337);
+        var serverFileSocket = new ServerSocket(1338);
 
         while (true) {
             // Wait for an incoming client-connection request (blocking).
             Socket socket = serverSocket.accept();
+            Socket socket1 = serverFileSocket.accept();
             // Your code here:
-            // TODO: Start a message processing thread for each connecting client.
-            ClientHandler clientHandler = new ClientHandler(socket, this);
+            // TODO: Start a message processing and file thread for each connecting client.
+            ClientHandler clientHandler = new ClientHandler(socket, new FileTransferHandler(socket1,socket.getOutputStream()),this);
             clientHandler.start();
 
             // TODO: Start a ping thread for each connecting client.
