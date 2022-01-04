@@ -6,8 +6,6 @@ import java.io.*;
 import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -131,7 +129,7 @@ public class ClientHandler extends Thread {
                 //TODO:Check this line out .........
             case "FIL ACK":
                 if(checkIfLoggedIn()){
-                    server.respondToAck(this,command[1],command[2]);
+                    server.sendAcknowledgement(this, command[1]);
                 }
 
                 break;
@@ -141,7 +139,7 @@ public class ClientHandler extends Thread {
     public String[] parseMessage(String message) {
         String command = message.split(" ")[0];
         //The first element of the array is command, the second is message
-        String[] commandAndMessage;
+        String[] commandAndMessage = new String[]{};
 
         switch (command) {
             case "GRP":
@@ -166,11 +164,9 @@ public class ClientHandler extends Thread {
                 if (message.split(" ")[1].equals("ACK")) {
                     String[] splitMessageAck = message.split(" ");
                     commandAndMessage = new String[]{splitMessageAck[0] + " " + splitMessageAck[1], splitMessageAck[2]};
-                } else if (!message.split(" ")[1].equals("SND")) {
+                } else if (message.split(" ")[1].equals("SND")) {
                     String[] splitMessageSnd = message.split(" ");
                     commandAndMessage = new String[]{splitMessageSnd[0] + " " + splitMessageSnd[1],splitMessageSnd[2],splitMessageSnd[3]};
-                } else {
-                    commandAndMessage = new String[]{};
                 }
 
                 break;
