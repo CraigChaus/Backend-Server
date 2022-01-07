@@ -135,6 +135,14 @@ public class ClientHandler extends Thread {
                 }
 
                 break;
+
+            case "ACC":
+                server.respondToAck(this, message.split(" ")[1], "ACC");
+                break;
+
+            case "DEC":
+                server.respondToAck(this, message.split(" ")[1], "DEC");
+                break;
         }
     }
 

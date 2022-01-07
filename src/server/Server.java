@@ -343,26 +343,31 @@ public class Server {
      * @param sender name of the sender client
      * @param receiverName name of the receiver client
      * @param response the message input by the client
-     * @return the boolean result
      */
-    public boolean respondToAck(ClientHandler sender,String receiverName,String response){
+    public void respondToAck(ClientHandler sender,String receiverName,String response){
 
         boolean result = false;
 
         for (ClientHandler client: clientHandlers) {
             if (client.getUsername().equals(receiverName)) {
-                if(response.equals("ACC "+ sender.getUsername())){
-                    sender.writeToClient("FIL ACC "+ client.getUsername());
-                    sender.writeToClient("INFO: Ready for file transmission");
-                     result = true;
-                }else if(response.equals("DEC "+sender.getUsername())){
-                    sender.writeToClient("FIL DEC "+client.getUsername());
-                    sender.writeToClient("INFO: File transmission cannot be done");
-                     result = false;
+                result = true;
+                switch (response) {
+                    case "ACC":
+                        client.writeToClient("FIL ACC "+ sender.getUsername());
+                        client.writeToClient("INFO: Ready for file transmission");
+                        break;
+                    case "DEC":
+                        client.writeToClient("FIL DEC " + sender.getUsername());
+                        client.writeToClient("INFO: File transmission cannot be done");
                 }
             }
         }
-       return result;
+
+        if (!result) {
+            sender.writeToClient("ERR07 Username doesn't exist");
+        }
+
+
     }
 
     public void sendBroadcastToGroup(ClientHandler sender, String groupName, String message) {
