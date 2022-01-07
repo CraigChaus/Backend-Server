@@ -129,7 +129,6 @@ public class ClientHandler extends Thread {
                     server.sendPrivateMessage(this, command[1], command[2]);
                 }
 
-                //TODO:Check this line out .........
             case "FIL ACK":
                 if(checkIfLoggedIn()){
                     server.sendAcknowledgement(this, command[1]);
