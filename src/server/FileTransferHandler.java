@@ -1,60 +1,70 @@
 package server;
 
+import client.ClientHandler;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 public class FileTransferHandler extends Thread{
-    private ServerSocket serverFileSocket;
-
+    private FileServer fileServer;
+    private String username;
     private Socket fileSocket;
     private InputStream inputStream;
     private FileOutputStream fileOutputStream;
-    private BufferedOutputStream bufferedOutputStream;
+    private FileInputStream fileInputStream;
     private OutputStream outputStream;
     int bufferSize;
 
     private boolean transferFinished;
 
-    public FileTransferHandler() throws IOException {
-        this.serverFileSocket = new ServerSocket(1338);
+    public FileTransferHandler(Socket fileSocket, FileServer fileServer) throws IOException {
+        this.fileServer = fileServer;
+        this.fileSocket = fileSocket;
+        this.username = username;
+
         bufferSize = 0;
-        transferFinished = false;
     }
 
     @Override
     public void run() {
-        while (!transferFinished) {
+        while (true) {
             try {
-                fileSocket = serverFileSocket.accept();
 
                 inputStream = fileSocket.getInputStream();
                 outputStream = fileSocket.getOutputStream();
-                bufferSize = serverFileSocket.getReceiveBufferSize();
+
+                //check this line
+                bufferSize = fileSocket.getReceiveBufferSize();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
-        PrintWriter printWriter = new PrintWriter(outputStream);
-        //TODO: do something here lol
-
-
     }
 
-    void receiveFile(String fileName) {
+    void receiveFile(String filePath) {
         try {
 
             System.out.println("Buffer size: " + bufferSize);
-            fileOutputStream = new FileOutputStream(fileName);
-            bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
-            byte[] bytes = new byte[bufferSize];
-            int count;
-            while ((count = inputStream.read(bytes)) >= 0) {
-                bufferedOutputStream.write(bytes, 0, count);
-            }
-            bufferedOutputStream.close();
-            inputStream.close();
+            fileInputStream = new FileInputStream(filePath);
+            outputStream = fileSocket.getOutputStream();
+
+           // fileOutputStream = new FileOutputStream(fileName);
+          //  bufferedOutputStream = new BufferedOutputStream(fileOutputStream);
+
+            byte[] bytes = new byte[10000];
+            fileInputStream.read(bytes,0,bytes.length);
+            outputStream.write(bytes,0, bytes.length);
+
+           // int count;
+           // while ((count = inputStream.read(bytes)) >= 0) {
+          //      bufferedOutputStream.write(bytes, 0, count);
+           // }
+         //   bufferedOutputStream.close();
+          //  inputStream.close();
+
+            fileInputStream.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -81,5 +91,17 @@ public class FileTransferHandler extends Thread{
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public Socket getFileSocket() {
+        return fileSocket;
+    }
+
+    public FileServer getFileServer() {
+        return fileServer;
+    }
+
+    public String getUsername() {
+        return username;
     }
 }
