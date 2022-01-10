@@ -35,10 +35,10 @@ public class Server {
         while (true) {
             // Wait for an incoming client-connection request (blocking).
             Socket socket = serverSocket.accept();
-            Socket socket1 = serverFileSocket.accept();
+
             // Your code here:
             // TODO: Start a message processing and file thread for each connecting client.
-            ClientHandler clientHandler = new ClientHandler(socket, new FileTransferHandler(socket1,socket.getOutputStream()),this);
+            ClientHandler clientHandler = new ClientHandler(socket,this);
             clientHandler.start();
 
             // TODO: Start a ping thread for each connecting client.
@@ -150,8 +150,6 @@ public class Server {
 
         user.writeToClient("OK " + commands[1] + " " + message);
     }
-
-    //The following are methods meant for different situations
 
     /**
      * METHOD 1: Printing out a list of all clients connected to the server

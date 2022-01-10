@@ -25,13 +25,12 @@ public class ClientHandler extends Thread {
     private PrintWriter writer;
     private String receivedMessage;
 
-    public ClientHandler(Socket socket,FileTransferHandler fileTransferHandler, Server server) {
+    public ClientHandler(Socket socket, Server server) {
         this.status = null;
         this.username = "";
         this.password = " ";
         this.socket = socket;
         this.server = server;
-        this.fileTransferHandler = fileTransferHandler;
     }
 
     @Override
