@@ -248,6 +248,16 @@ public class ClientHandler extends Thread {
     public boolean checksumFileCheck(String senderChecksum,String receiverChecksum){
         return senderChecksum.equals(receiverChecksum);
     }
+    public void getFile(String path) throws IOException {
+     byte[] bytes = new byte[10000];
+
+     Socket fileSocket = fileTransferHandler.getFileSocket();
+     InputStream inputStream = fileSocket.getInputStream();
+     FileOutputStream fileOutputStream = new FileOutputStream(path);
+
+     inputStream.read(bytes,0, bytes.length);
+     fileOutputStream.write(bytes,0, bytes.length);
+    }
 
 
 
