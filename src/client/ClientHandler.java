@@ -4,6 +4,7 @@ import server.FileTransferHandler;
 import server.Server;
 
 import java.io.*;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -137,6 +138,8 @@ public class ClientHandler extends Thread {
 
             case "ACC":
                 server.respondToAck(this, message.split(" ")[1], "ACC");
+
+
                 break;
 
             case "DEC":

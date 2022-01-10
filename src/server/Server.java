@@ -30,7 +30,6 @@ public class Server {
 
     public void startServer() throws IOException {
         var serverSocket = new ServerSocket(1337);
-        var serverFileSocket = new ServerSocket(1338);
 
         while (true) {
             // Wait for an incoming client-connection request (blocking).
