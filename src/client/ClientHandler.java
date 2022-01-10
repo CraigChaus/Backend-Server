@@ -8,6 +8,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,7 +30,7 @@ public class ClientHandler extends Thread {
     public ClientHandler(Socket socket, Server server) {
         this.status = null;
         this.username = "";
-        this.password = " ";
+        this.password = "";
         this.socket = socket;
         this.server = server;
     }
@@ -139,11 +140,22 @@ public class ClientHandler extends Thread {
             case "ACC":
                 server.respondToAck(this, message.split(" ")[1], "ACC");
 
-
                 break;
 
             case "DEC":
                 server.respondToAck(this, message.split(" ")[1], "DEC");
+                break;
+
+            case "PASS":
+                try {
+                    server.createPassword(message.split(" ")[1], this);
+                } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+                    e.printStackTrace();
+                }
+                break;
+
+            case "AUTH":
+                server.authenticateMe(message.split(" ")[1], this);
                 break;
         }
     }
