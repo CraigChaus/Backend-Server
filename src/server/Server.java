@@ -323,6 +323,22 @@ public class Server {
         }
     }
 
+    public void sendCheckSum(ClientHandler sender, String receiverName, String checkSum) {
+        boolean exist = false;
+
+        for (ClientHandler client: clientHandlers) {
+            if (client.getUsername().equals(receiverName)) {
+                exist = true;
+                client.writeToClient("INC " + sender.getUsername() +" "+ checkSum);
+                System.out.println("Incoming File Command");
+            }
+        }
+        if (!exist) {
+            sender.writeToClient("ERR... Client does not exist!");
+            System.out.println("ERR... Client does not exist!");
+        }
+    }
+
     /**
      * Method to send an acknowledgement to a client
      * @param sender Name of client sender

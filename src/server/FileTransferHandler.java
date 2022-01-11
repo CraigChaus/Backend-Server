@@ -36,12 +36,17 @@ public class FileTransferHandler extends Thread{
 
                 //check this line
                 bufferSize = fileSocket.getReceiveBufferSize();
+                fileServer.fillInUsername(this,username);
+                System.out.println("CLient "+ username + " has connected");
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
 
     }
+
+
+
 
     void receiveFile(String filePath) {
         try {

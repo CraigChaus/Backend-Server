@@ -1,4 +1,5 @@
 import client.ClientHandler;
+import server.FileServer;
 import server.Server;
 
 import java.io.*;
@@ -6,6 +7,9 @@ import java.io.*;
 public class Main {
     public static void main(String[] args) throws IOException {
         Server server = new Server();
+        FileServer fileServer= new FileServer();
         server.startServer();
+        fileServer.startFileServer();
+
     }
 }
