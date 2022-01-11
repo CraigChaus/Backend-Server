@@ -121,23 +121,26 @@ public class Server {
 
                     if(matchFound){
 
-                        String salt = BCrypt.gensalt();
-//                        SecureRandom random = new SecureRandom();
-//                        byte[] salt = new byte[16];
-//                        random.nextBytes(salt);
+//                        String salt = BCrypt.gensalt();
+//                        String hashedPasswordCreated = BCrypt.hashpw(passWord, salt);
 
-                        // Now were are using this algorithm which is recommended!
-//                        KeySpec spec = new PBEKeySpec(passWord.toCharArray(), salt, 65536, 128);
-//                        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
-//
-//                        byte[] hashedPassword = factory.generateSecret(spec).getEncoded();
+                        SecureRandom random = new SecureRandom();
+                        byte[] salt = new byte[16];
+                        random.nextBytes(salt);
 
-//                        String hashedPasswordCreated = new String(hashedPassword, StandardCharsets.UTF_8);
-                        String hashedPasswordCreated = BCrypt.hashpw(passWord, salt);
+                        //Now were are using this algorithm which is recommended!
+                        KeySpec spec = new PBEKeySpec(passWord.toCharArray(), salt, 65536, 128);
+                        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+
+                        byte[] hashedPassword = factory.generateSecret(spec).getEncoded();
+
+                        String hashedPasswordCreated = new String(hashedPassword, StandardCharsets.UTF_8);
+                        System.out.println(hashedPasswordCreated);
 
                         client.setPassword(hashedPasswordCreated);
                         client.writeToClient("OK PASS");
                         System.out.println("password created");
+
                     }else{
                         client.writeToClient("ERR08 Weak Password");
                         System.out.println("Weak password");
