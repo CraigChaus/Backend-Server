@@ -1,8 +1,5 @@
 package server;
 
-import client.ClientHandler;
-import client.Statuses;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
