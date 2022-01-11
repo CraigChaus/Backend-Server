@@ -1,9 +1,6 @@
 package server;
 
-import client.ClientHandler;
-
 import java.io.*;
-import java.net.ServerSocket;
 import java.net.Socket;
 
 public class FileTransferHandler extends Thread{

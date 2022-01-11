@@ -3,38 +3,49 @@ package hashing;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
+// As an example the following source was used: https://gist.github.com/jtan189/3804290
 
 public class PasswordHash {
 
-    private final int iterationCount;
-    private final int keyLength;
+    public String hashPassword(String password)
+            throws NoSuchAlgorithmException, InvalidKeySpecException
+    {
+        SecureRandom random = new SecureRandom();
+        byte[] salt = new byte[16];
+        random.nextBytes(salt);
 
-    public PasswordHash() {
-        this.iterationCount = 65536;
-        this.keyLength = 128;
+        byte[] hash = hashUsingPBKDF2(password.toCharArray(), salt, 128);
+        return toHex(salt) + ":" +  toHex(hash);
     }
 
-    public String hashPassword(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        byte[] hashedPassword = hashUsingPBKDF2(password);
 
-        return toHex(hashedPassword);
-    }
+    public boolean checkPassword(String password, String goodHash)
+            throws NoSuchAlgorithmException, InvalidKeySpecException
+    {
+        String[] params = goodHash.split(":");
 
-    public boolean checkPassword(String passwordToCheck, String realPassword) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        byte[] hash = fromHex(realPassword);
+        byte[] salt = fromHex(params[0]);
+        byte[] hash = fromHex(params[1]);
 
-        byte[] hashedPasswordToCheck = hashUsingPBKDF2(passwordToCheck);
+        byte[] hashedPasswordToCheck = hashUsingPBKDF2(password.toCharArray(), salt, hash.length);
 
-        int diff = hashedPasswordToCheck.length ^ hash.length;
-        for(int i = 0; i < hashedPasswordToCheck.length && i < hash.length; i++)
-            diff |= hashedPasswordToCheck[i] ^ hash[i];
+        int diff = hash.length ^ hashedPasswordToCheck.length;
+        for(int i = 0; i < hash.length && i < hashedPasswordToCheck.length; i++)
+            diff |= hash[i] ^ hashedPasswordToCheck[i];
 
         return diff == 0;
+
+    }
+
+    private byte[] hashUsingPBKDF2(char[] password, byte[] salt, int bytes)
+            throws NoSuchAlgorithmException, InvalidKeySpecException
+    {
+        PBEKeySpec spec = new PBEKeySpec(password, salt, 65536, bytes * 8);
+        SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+        return skf.generateSecret(spec).getEncoded();
     }
 
     private byte[] fromHex(String hex)
@@ -58,15 +69,4 @@ public class PasswordHash {
             return hex;
     }
 
-    private byte[] hashUsingPBKDF2(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        SecureRandom random = new SecureRandom();
-        byte[] salt = new byte[16];
-        random.nextBytes(salt);
-
-        //Now were are using this algorithm which is recommended!
-        KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, iterationCount, keyLength);
-        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
-
-        return factory.generateSecret(spec).getEncoded();
-    }
 }

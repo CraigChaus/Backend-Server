@@ -1,6 +1,4 @@
-package client;
-
-import client.ClientHandler;
+package clientHandler;
 
 import java.util.ArrayList;
 

@@ -1,10 +1,9 @@
-package client;
+package clientHandler;
 
 import server.FileTransferHandler;
 import server.Server;
 
 import java.io.*;
-import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

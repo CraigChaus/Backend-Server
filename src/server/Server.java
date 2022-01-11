@@ -1,9 +1,9 @@
 package server;
 
-import client.ClientHandler;
-import client.Group;
-import client.Statuses;
-import org.springframework.security.crypto.bcrypt.BCrypt;
+import clientHandler.ClientHandler;
+import clientHandler.Group;
+import clientHandler.Statuses;
+import hashing.PasswordHash;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
@@ -24,12 +23,14 @@ public class Server {
     private ArrayList<ClientHandler> clientHandlers;
     private ArrayList<Group> groups;
     private String[] commands;
+    private PasswordHash passwordHash;
 
     public Server() {
         clientHandlers = new ArrayList<>();
         this.groups = new ArrayList<>();
         commands = new String[]{"CONN", "BCST", "QUIT", "AUTH", "LST", "GRP CRT", "GRP LST", "GRP EXIT", "GRP JOIN",
                 "GRP BCST", "PMSG","FIL ACK","FIL SND","INC"};
+        this.passwordHash = new PasswordHash();
     }
 
     public void startServer() throws IOException {
@@ -76,81 +77,72 @@ public class Server {
 
     /**
      *
-     * @param password
-     * @param clientHandler
+     * @param password password to check
+     * @param clientHandler client who tries to authenticate
      * @throws IOException
      * @throws NoSuchAlgorithmException
      * Password verification method
      */
     public void authenticateMe(String password,ClientHandler clientHandler){
 
-        for (ClientHandler client:clientHandlers) {
-            if(client.getUsername().equals(clientHandler.getUsername())){
-                if(client.getStatus() == Statuses.AUTHENTICATED){
-                    client.writeToClient("ERR11 Already authenticated");
-                }else{
-                    if(client.getPassword().equals("")){
-                        client.writeToClient("ERR 12 Create password");
-                    }else if(BCrypt.checkpw(password,client.getPassword())) {
-                        client.setStatus(Statuses.AUTHENTICATED);
-                        client.writeToClient("OK AUTH");
-                        //TODO: Implement authentication feature for noticing authed usernames
-                    }
+        try {
+            if(clientHandler.getStatus() == Statuses.AUTHENTICATED){
+                clientHandler.writeToClient("ERR11 Already authenticated");
+            }else if(clientHandler.getPassword().equals("")) {
+
+                clientHandler.writeToClient("ERR 12 Create password");
+
+            } else {
+                System.out.println("Clients password to check: " + clientHandler.getPassword());
+                boolean result = passwordHash.checkPassword(password, clientHandler.getPassword());
+                System.out.println("IS AUTHENTICATED: " + result);
+
+                if (result) {
+                    clientHandler.setStatus(Statuses.AUTHENTICATED);
+                    clientHandler.writeToClient("OK AUTH");
+                    //TODO: Implement authentication feature for noticing authed usernames
                 }
-            }else{
-                clientHandler.writeToClient("ERR12 This is not your username");
+
             }
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
         }
     }
 
     /**
      *
-     * @param passWord
+     * @param password
      * @param clientHandler
      * @throws NoSuchAlgorithmException
      * create password method
      */
-    public void createPassword(String passWord, ClientHandler clientHandler) throws InvalidKeySpecException, NoSuchAlgorithmException {
+    public void createPassword(String password, ClientHandler clientHandler) throws InvalidKeySpecException, NoSuchAlgorithmException {
 
-        for (ClientHandler client:clientHandlers) {
-            if((client.getUsername().equals(clientHandler.getUsername()))&&(!client.getPassword().equals(passWord))) {
-                if((passWord.length() >= 8)){
-                    Pattern pattern = Pattern.compile("[- !@#$%^&*()+=|/?.>,<`~]", Pattern.CASE_INSENSITIVE);
-                    Matcher matcher = pattern.matcher(passWord);
-                    boolean matchFound = matcher.find();
+        if((password.length() >= 8)) {
+            Pattern pattern = Pattern.compile("[- !@#$%^&*()+=|/?.>,<`~]", Pattern.CASE_INSENSITIVE);
+            Matcher matcher = pattern.matcher(password);
+            boolean matchFound = matcher.find();
 
-                    if(matchFound){
+            if(matchFound){
 
-//                        String salt = BCrypt.gensalt();
-//                        String hashedPasswordCreated = BCrypt.hashpw(passWord, salt);
+//                String salt = BCrypt.gensalt();
+//                String hashedPasswordCreated = BCrypt.hashpw(passWord, salt);
 
-                        SecureRandom random = new SecureRandom();
-                        byte[] salt = new byte[16];
-                        random.nextBytes(salt);
+                String hashedPasswordCreated = passwordHash.hashPassword(password);
+                System.out.println(hashedPasswordCreated);
 
-                        //Now were are using this algorithm which is recommended!
-                        KeySpec spec = new PBEKeySpec(passWord.toCharArray(), salt, 65536, 128);
-                        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+                clientHandler.setPassword(hashedPasswordCreated);
+                clientHandler.writeToClient("OK PASS");
+                System.out.println("password created");
 
-                        byte[] hashedPassword = factory.generateSecret(spec).getEncoded();
-
-                        String hashedPasswordCreated = new String(hashedPassword, StandardCharsets.UTF_8);
-                        System.out.println(hashedPasswordCreated);
-
-                        client.setPassword(hashedPasswordCreated);
-                        client.writeToClient("OK PASS");
-                        System.out.println("password created");
-
-                    }else{
-                        client.writeToClient("ERR08 Weak Password");
-                        System.out.println("Weak password");
-                    }
-                    break;
-                }else{
-                    client.writeToClient("ERR10 Invalid password");
-                    System.out.println("Invalid password");
-                }
+            }else{
+                clientHandler.writeToClient("ERR08 Weak Password");
+                System.out.println("Weak password");
             }
+
+        }else{
+            clientHandler.writeToClient("ERR10 Invalid password");
+            System.out.println("Invalid password");
         }
     }
 
