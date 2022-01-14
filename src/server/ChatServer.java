@@ -19,13 +19,13 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Server {
+public class ChatServer {
     private ArrayList<ClientHandler> clientHandlers;
     private ArrayList<Group> groups;
     private String[] commands;
     private PasswordHash passwordHash;
 
-    public Server() {
+    public ChatServer() {
         clientHandlers = new ArrayList<>();
         this.groups = new ArrayList<>();
         commands = new String[]{"CONN", "BCST", "QUIT", "AUTH", "LST", "GRP CRT", "GRP LST", "GRP EXIT", "GRP JOIN",
@@ -322,15 +322,16 @@ public class Server {
      * Method to send an acknowledgement to a client
      * @param sender Name of client sender
      * @param receiverName name of client receiver
+     * @param filePath is the absolute file path of te doc to be sent
      */
-    public void sendAcknowledgement(ClientHandler sender, String receiverName){
+    public void sendAcknowledgement(ClientHandler sender, String receiverName,String filePath){
         boolean exist = false;
 
         for (ClientHandler client: clientHandlers) {
             if (client.getUsername().equals(receiverName)) {
                 exist = true;
-                client.writeToClient("ACK "+ sender.getUsername());
-                System.out.println("ACK forwarded to client "+client.getUsername());
+                client.writeToClient("ACK "+ sender.getUsername() + " "+ filePath);
+                System.out.println("ACK forwarded to client "+client.getUsername()+ " file: "+filePath);
             }
         }
         if (!exist) {
@@ -355,20 +356,19 @@ public class Server {
                 switch (response) {
                     case "ACC":
                         client.writeToClient("FIL ACC "+ sender.getUsername());
-                        client.writeToClient("INFO: Ready for file transmission");
+                        System.out.println("Sent FIL ACC to "+ sender.getUsername());
+                        System.out.println("INFO: Ready for file transmission");
                         break;
                     case "DEC":
                         client.writeToClient("FIL DEC " + sender.getUsername());
-                        client.writeToClient("INFO: File transmission cannot be done");
+                        System.out.println("Sent FIL DEC to "+ sender.getUsername());
+                        System.out.println("INFO: File transmission cannot be done");
                 }
             }
         }
-
         if (!result) {
             sender.writeToClient("ERR07 Username doesn't exist");
         }
-
-
     }
 
     public void sendBroadcastToGroup(ClientHandler sender, String groupName, String message) {

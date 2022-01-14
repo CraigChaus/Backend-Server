@@ -9,15 +9,17 @@ public class FileServer {
 
     InputStream inputStream;
     OutputStream outputStream;
-    ArrayList<FileTransferHandler> fileTransferHandlers;
+    Socket fileSocket;
+
 
     public FileServer(InputStream inputStream, OutputStream outputStream) {
         this.inputStream = inputStream;
         this.outputStream = outputStream;
     }
+
     public void startFileServer() throws IOException {
         var serverFileSocket = new ServerSocket(1338);
-
+        fileSocket = new Socket("127.0.0.1",1338);
         while (true) {
             // Wait for an incoming client-connection request (blocking).
             Socket socket = serverFileSocket.accept();
@@ -29,23 +31,24 @@ public class FileServer {
         }
     }
 
-    public void fillInUsername(FileTransferHandler fileTransferHandlerName,String username){
-        boolean usernameExists = false;
-
-        for (FileTransferHandler fileTransferHandler: fileTransferHandlers) {
-            if (username.equalsIgnoreCase(fileTransferHandler.getUsername())) {
-                usernameExists = true;
-            }
-        }
-
-        if (!usernameExists) {
-            fileTransferHandlerName.setName(username);
-            fileTransferHandlers.add(fileTransferHandlerName);
-
-        } else{
-            System.out.println("User already exist, system error");
-        }
-    }
+//    public void fillInUsername(String username) throws IOException {
+//        boolean usernameExists = false;
+//
+//        for (FileTransferHandler fileTransferHandler: fileTransferHandlers) {
+//            if (username.equalsIgnoreCase(fileTransferHandler.getUsername())) {
+//                usernameExists = true;
+//            }
+//        }
+//        FileTransferHandler fileTransferHandlerName = new FileTransferHandler( fileSocket,this);
+//
+//        if (!usernameExists) {
+//            fileTransferHandlerName.setName(username);
+//            fileTransferHandlers.add(fileTransferHandlerName);
+//
+//        } else{
+//            System.out.println("User already exist, system error");
+//        }
+//    }
 
     public InputStream getInputStream() {
         return inputStream;
@@ -64,33 +67,27 @@ public class FileServer {
     }
 
     //TODO: check this out tomorrow
-    public void sendToClient(String username,File filePath){
-        for (FileTransferHandler fileTransferHandler:fileTransferHandlers) {
-            if(fileTransferHandler.getUsername().equals(username)){
+    public void sendToClient(String fileName){
 
-                    FileInputStream fileInputStream;
-                    BufferedInputStream bufferedInputStream;
-                    BufferedOutputStream bufferedOutputStream1;
+        File filePath = new File(fileName);
+        FileInputStream fileInputStream;
+        BufferedInputStream bufferedInputStream;
+        BufferedOutputStream bufferedOutputStream1;
 
-                    byte[] buffer = new byte[8192];
-                    try {
-                        fileInputStream = new FileInputStream(filePath);
-                        bufferedInputStream = new BufferedInputStream(fileInputStream);
-                        bufferedOutputStream1 = new BufferedOutputStream(outputStream);
-                        int count;
-                        while ((count = bufferedInputStream.read(buffer)) > 0) {
-                            bufferedOutputStream1.write(buffer, 0, count);
-                        }
-                        bufferedOutputStream1.close();
-                        fileInputStream.close();
-                        bufferedInputStream.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
+        byte[] buffer = new byte[8192];
+        try {
+            fileInputStream = new FileInputStream(filePath);
+            bufferedInputStream = new BufferedInputStream(fileInputStream);
+            bufferedOutputStream1 = new BufferedOutputStream(outputStream);
+            int count;
+            while ((count = bufferedInputStream.read(buffer)) > 0) {
+                bufferedOutputStream1.write(buffer, 0, count);
             }
+            bufferedOutputStream1.close();
+            fileInputStream.close();
+            bufferedInputStream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
-
-
 }

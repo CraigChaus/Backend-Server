@@ -37,12 +37,14 @@ public class FileTransferHandler extends Thread{
                 e.printStackTrace();
             }
         }
-
+    }
+    public void sendFromServerToClient(String fileName){
+        fileServer.sendToClient(fileName);
     }
 
-    void receiveFile(String filePath) {
+   public void receiveFile(String filePath) {
         try {
-
+            fileServer.startFileServer();
             System.out.println("Buffer size: " + bufferSize);
             fileInputStream = new FileInputStream(filePath);
             outputStream = fileSocket.getOutputStream();
@@ -61,14 +63,18 @@ public class FileTransferHandler extends Thread{
          //   bufferedOutputStream.close();
           //  inputStream.close();
 
+            System.out.println("received file");
             fileInputStream.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    void sendFile(File file) {
+    public void sendFile(String filePath) throws IOException {
 
+
+        fileServer.startFileServer();
+        File file = new File(filePath);
         FileInputStream fileInputStream;
         BufferedInputStream bufferedInputStream;
         BufferedOutputStream bufferedOutputStream1;
