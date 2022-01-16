@@ -1,4 +1,4 @@
-# Internet Technology server.Server
+# Internet Technology server.ChatServer
 
 
 
@@ -15,14 +15,14 @@ Already a pro? Just edit this README.md and make it your own. Want to make it ea
 
 ```
 cd existing_repo
-git remote add origin https://gitlab.com/IllyaBrodovskyy/internet-technology-server.git
+git remote add origin https://gitlab.com/IllyaBrodovskyy/internet-technology-chatServer.git
 git branch -M main
 git push -uf origin main
 ```
 
 ## Integrate with your tools
 
-- [ ] [Set up project integrations](https://gitlab.com/-/experiment/new_project_readme_content:fbcc7e62698e8045583c3b3d13ca5935?https://gitlab.com/IllyaBrodovskyy/internet-technology-server/-/settings/integrations)
+- [ ] [Set up project integrations](https://gitlab.com/-/experiment/new_project_readme_content:fbcc7e62698e8045583c3b3d13ca5935?https://gitlab.com/IllyaBrodovskyy/internet-technology-chatServer/-/settings/integrations)
 
 ## Collaborate with your team
 
@@ -80,7 +80,7 @@ State if you are open to contributions and what your requirements are for accept
 
 For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium chatServer for testing in a browser.
 
 ## Authors and acknowledgment
 Show your appreciation to those who have contributed to the project.

@@ -19,22 +19,32 @@ import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Server {
+public class ChatServer {
     private ArrayList<ClientHandler> clientHandlers;
     private ArrayList<Group> groups;
     private String[] commands;
     private PasswordHash passwordHash;
+    private FileServer fileServer;
 
-    public Server() {
+    public ChatServer() {
         clientHandlers = new ArrayList<>();
         this.groups = new ArrayList<>();
         commands = new String[]{"CONN", "BCST", "QUIT", "AUTH", "LST", "GRP CRT", "GRP LST", "GRP EXIT", "GRP JOIN",
                 "GRP BCST", "PMSG","FIL ACK","FIL SND","INC"};
         this.passwordHash = new PasswordHash();
+        fileServer = new FileServer();
     }
 
     public void startServer() throws IOException {
         var serverSocket = new ServerSocket(1337);
+
+        new Thread(() -> {
+            try {
+                fileServer.startFileServer();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
 
         while (true) {
             // Wait for an incoming client-connection request (blocking).
@@ -46,10 +56,8 @@ public class Server {
             clientHandler.start();
 
             // TODO: Start a ping thread for each connecting client.
-
             PingPongThread pongThread = new PingPongThread(socket.getOutputStream());
             pongThread.start();
-
         }
     }
 
@@ -310,6 +318,7 @@ public class Server {
                 client.writeToClient("PMSG " + sender.getUsername() + " " + message);
                 sender.writeToClient("OK PMSG");
                 System.out.println("OK PMSG");
+                break;
             }
         }
         if (!exist) {
@@ -322,15 +331,16 @@ public class Server {
      * Method to send an acknowledgement to a client
      * @param sender Name of client sender
      * @param receiverName name of client receiver
+     * @param filePath is the absolute file path of te doc to be sent
      */
-    public void sendAcknowledgement(ClientHandler sender, String receiverName){
+    public void sendAcknowledgement(ClientHandler sender, String receiverName,String filePath){
         boolean exist = false;
 
         for (ClientHandler client: clientHandlers) {
             if (client.getUsername().equals(receiverName)) {
                 exist = true;
-                client.writeToClient("ACK "+ sender.getUsername());
-                System.out.println("ACK forwarded to client "+client.getUsername());
+                client.writeToClient("ACK "+ sender.getUsername() + " "+ filePath);
+                System.out.println("ACK forwarded to client "+client.getUsername()+ " file: "+filePath);
             }
         }
         if (!exist) {
@@ -345,7 +355,7 @@ public class Server {
      * @param receiverName name of the receiver client
      * @param response the message input by the client
      */
-    public void respondToAck(ClientHandler sender,String receiverName,String response){
+    public void respondToAck(ClientHandler sender,String receiverName,String response,String filePath){
 
         boolean result = false;
 
@@ -354,21 +364,20 @@ public class Server {
                 result = true;
                 switch (response) {
                     case "ACC":
-                        client.writeToClient("FIL ACC "+ sender.getUsername());
-                        client.writeToClient("INFO: Ready for file transmission");
+                        client.writeToClient("FIL ACC "+ sender.getUsername()+ " "+ filePath);
+                        System.out.println("Sent FIL ACC to "+ sender.getUsername() +  " "+ filePath);
+                        System.out.println("INFO: Ready for file transmission");
                         break;
                     case "DEC":
-                        client.writeToClient("FIL DEC " + sender.getUsername());
-                        client.writeToClient("INFO: File transmission cannot be done");
+                        client.writeToClient("FIL DEC " + sender.getUsername() +" "+filePath);
+                        System.out.println("Sent FIL DEC to "+ sender.getUsername() +  " "+ filePath);
+                        System.out.println("INFO: File transmission cannot be done");
                 }
             }
         }
-
         if (!result) {
             sender.writeToClient("ERR07 Username doesn't exist");
         }
-
-
     }
 
     public void sendBroadcastToGroup(ClientHandler sender, String groupName, String message) {
@@ -387,6 +396,21 @@ public class Server {
         }
         if (!exist) {
             sender.writeToClient("ERR... client.client.Group does not exist!");
+        }
+    }
+
+    public void sendFileToClient(ClientHandler sender,String receiver, String filePath){
+        boolean exist = false;
+
+        for (ClientHandler clientHandler:clientHandlers) {
+            if (clientHandler.getUsername().equals(receiver)) {
+                fileServer.sendToClient(sender,clientHandler,filePath);
+                exist = true;
+                System.out.println("sent file from chatserver");
+            }
+        }
+        if(!exist){
+          sender.writeToClient("ERR07 Username doesn't exist");
         }
     }
 
