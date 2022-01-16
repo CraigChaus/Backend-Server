@@ -146,7 +146,7 @@ public class ClientHandler extends Thread {
             case "FIL SND":
                 if(checkIfLoggedIn()){
                     //TODO: implement sending file
-                    chatServer.sendFileToClient(this,command[1],command[2]);
+                    chatServer.sendFileToClient(this,command[1],command[3]);
                 }
                 break;
 
@@ -216,7 +216,7 @@ public class ClientHandler extends Thread {
                     commandAndMessage = new String[]{splitMessageAck[0] + " " + splitMessageAck[1], splitMessageAck[2],splitMessageAck[3]};
                 } else if (message.split(" ")[1].equals("SND")) {
                     String[] splitMessageSnd = message.split(" ");
-                    commandAndMessage = new String[]{splitMessageSnd[0] + " " + splitMessageSnd[1], splitMessageSnd[2], splitMessageSnd[3]};
+                    commandAndMessage = new String[]{splitMessageSnd[0] + " " + splitMessageSnd[1], splitMessageSnd[2], splitMessageSnd[3], splitMessageSnd[4]};
                 }
             }
             default -> commandAndMessage = new String[]{command, message.split(" ", 2)[1]};

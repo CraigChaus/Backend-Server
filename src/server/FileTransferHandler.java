@@ -69,6 +69,7 @@ public class FileTransferHandler extends Thread{
     public void sendFile(String filePath) throws IOException {
         Socket s = new Socket(System.getProperty("localhost"),1338);
 
+        System.out.println("The file path: " + filePath);
         File file = new File(filePath);
 
         if(!file.exists()||!file.isFile()){
