@@ -137,7 +137,6 @@ public class ClientHandler extends Thread {
                 break;
 
             case "FIL ACK":
-                System.out.println(command.toString()+ "for sending fil ack");
                 if(checkIfLoggedIn()){
                     chatServer.sendAcknowledgement(this, command[1],command[2]);
 
@@ -151,7 +150,6 @@ public class ClientHandler extends Thread {
                 break;
 
             case "ACC":
-                System.out.println(command.toString()+ "for respond to ack");
                 chatServer.respondToAck(this, message.split(" ")[1], "ACC",message.split(" ")[2]);
                 break;
 
