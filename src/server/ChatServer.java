@@ -25,6 +25,7 @@ public class ChatServer {
     private String[] commands;
     private PasswordHash passwordHash;
     private FileServer fileServer;
+    private long primeKeyG,rootKeyG;
 
     public ChatServer() {
         clientHandlers = new ArrayList<>();
@@ -33,6 +34,10 @@ public class ChatServer {
                 "GRP BCST", "PMSG","FIL ACK","FIL SND","INC"};
         this.passwordHash = new PasswordHash();
         fileServer = new FileServer();
+
+        //TODO: change the values later on when testing
+        primeKeyG = 23;
+        rootKeyG = 9;
     }
 
     public void startServer() throws IOException {
@@ -413,6 +418,42 @@ public class ChatServer {
           sender.writeToClient("ERR07 Username doesn't exist");
         }
     }
+
+    //All these methods have only got something to do with encryption
+    public void giveClientsThePublicKeys(ClientHandler sender, String receiverName){
+        boolean exist = false;
+
+        for (ClientHandler client: clientHandlers) {
+            if (client.getUsername().equals(receiverName)) {
+                exist = true;
+                client.writeToClient("ENCR " + primeKeyG + " " + rootKeyG + " " + sender.getUsername() );
+                sender.writeToClient("ENCR " + primeKeyG + " " + rootKeyG + " " + receiverName);
+
+                //For reference purposes
+                System.out.println("ENCR sent to clients :"+ sender.getUsername()+ " and "+receiverName);
+                break;
+            }
+        }
+        if (!exist) {
+            sender.writeToClient("ERR07 Username does not exist");
+            System.out.println("ERR07 Username does not exist");
+        }
+    }
+
+    public void passPublicValueToOtherClient(ClientHandler sender,String username,long publicValue){
+
+        for (ClientHandler client: clientHandlers) {
+            if (client.getUsername().equals(username)) {
+
+                client.writeToClient("PVE " + publicValue + " "+ sender.getUsername() );
+                client.setEncryptionSessionActive(true);
+                //For reference purposes
+                System.out.println("PVE sent to client :"+username);
+                break;
+            }
+        }
+    }
+
 
     public ArrayList<ClientHandler> getClients() {
         return clientHandlers;
