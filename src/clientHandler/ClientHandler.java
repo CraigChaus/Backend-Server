@@ -15,6 +15,7 @@ public class ClientHandler extends Thread {
     private Statuses status;
     private String username;
     private String password;
+    private boolean encryptionSessionActive;
 
 
     private ChatServer chatServer;
@@ -31,6 +32,7 @@ public class ClientHandler extends Thread {
         this.status = null;
         this.username = "";
         this.password = "";
+        this.encryptionSessionActive = false;
         this.socket = socket;
         this.chatServer = chatServer;
     }
@@ -131,7 +133,6 @@ public class ClientHandler extends Thread {
 
             case "PMSG":
                 if (checkIfLoggedIn()) {
-                    System.out.println("Recieved PMSG");
                     chatServer.sendPrivateMessage(this, command[1], command[2]);
                 }
                 break;
@@ -167,6 +168,15 @@ public class ClientHandler extends Thread {
 
             case "AUTH":
                 chatServer.authenticateMe(message.split(" ")[1], this);
+                break;
+
+            case "ENC":
+                chatServer.giveClientsThePublicKeys(this,command[1]);
+                break;
+
+            case "PV":
+                long publicValue = Long.parseLong(command[2]);
+                chatServer.passPublicValueToOtherClient(this,command[1],publicValue);
                 break;
         }
     }
@@ -274,5 +284,13 @@ public class ClientHandler extends Thread {
 
     public PrintWriter getWriter() {
         return writer;
+    }
+
+    public boolean isEncryptionSessionActive() {
+        return encryptionSessionActive;
+    }
+
+    public void setEncryptionSessionActive(boolean encryptionSessionActive) {
+        this.encryptionSessionActive = encryptionSessionActive;
     }
 }
