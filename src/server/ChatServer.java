@@ -3,18 +3,15 @@ package server;
 import clientHandler.ClientHandler;
 import clientHandler.Group;
 import clientHandler.Statuses;
+import fileHandler.ClientFileHandler;
+import fileHandler.FileServer;
 import hashing.PasswordHash;
 
-import javax.crypto.SecretKeyFactory;
-import javax.crypto.spec.PBEKeySpec;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,23 +34,54 @@ public class ChatServer {
 
     public void startServer() throws IOException {
         var serverSocket = new ServerSocket(1337);
+        var serverFileSocket = new ServerSocket(1338);
 
-        new Thread(() -> {
-            try {
-                fileServer.startFileServer();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }).start();
+//        new Thread(() -> {
+//            while (true) {
+//                // Wait for an incoming client-connection request (blocking).
+//                try {
+//                    Socket fileSocket = serverFileSocket.accept();
+//
+//                    DataInputStream dataInputStream = new DataInputStream(fileSocket.getInputStream());
+//
+//                    int receiverNameLength = dataInputStream.readInt();
+//
+//                    if (receiverNameLength > 0) {
+//                        byte[] receiverBytes = new byte[receiverNameLength];
+//                        dataInputStream.readFully(receiverBytes,0, receiverBytes.length);
+//                        String receiver = new String(receiverBytes);
+//
+//                        int fileLength = dataInputStream.readInt();
+//
+//                        if (fileLength > 0) {
+//                            byte[] fileBytes = new byte[fileLength];
+//                            dataInputStream.readFully(fileBytes,0, fileLength);
+//
+//                            getClientByName(receiver).transferFile(fileBytes);
+//                        }
+//
+//                    }
+//
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//
+//            }
+//        }).start();
 
-        while (true) {
+        while (!serverSocket.isClosed()) {
             // Wait for an incoming client-connection request (blocking).
             Socket socket = serverSocket.accept();
+            Socket fileSocket = serverFileSocket.accept();
 
             // Your code here:
             // TODO: Start a message processing and file thread for each connecting client.
-            ClientHandler clientHandler = new ClientHandler(socket,this);
+            ClientHandler clientHandler = new ClientHandler(socket,this, fileSocket);
             clientHandler.start();
+
+            ClientFileHandler clientFileHandler = new ClientFileHandler(clientHandler, fileSocket);
+            clientFileHandler.start();
+
 
             // TODO: Start a ping thread for each connecting client.
             PingPongThread pongThread = new PingPongThread(socket.getOutputStream());
@@ -91,7 +119,7 @@ public class ChatServer {
      * @throws NoSuchAlgorithmException
      * Password verification method
      */
-    public void authenticateMe(String password,ClientHandler clientHandler){
+    public void authenticateMe(String password, ClientHandler clientHandler){
 
         try {
             if(clientHandler.getStatus() == Statuses.AUTHENTICATED){
@@ -333,7 +361,7 @@ public class ChatServer {
      * @param receiverName name of client receiver
      * @param filePath is the absolute file path of te doc to be sent
      */
-    public void sendAcknowledgement(ClientHandler sender, String receiverName,String filePath){
+    public void sendAcknowledgement(ClientHandler sender, String receiverName, String filePath){
         boolean exist = false;
 
         for (ClientHandler client: clientHandlers) {
@@ -355,7 +383,7 @@ public class ChatServer {
      * @param receiverName name of the receiver client
      * @param response the message input by the client
      */
-    public void respondToAck(ClientHandler sender,String receiverName,String response,String filePath){
+    public void respondToAck(ClientHandler sender, String receiverName, String response, String filePath){
 
         boolean result = false;
 
@@ -372,6 +400,7 @@ public class ChatServer {
                         client.writeToClient("FIL DEC " + sender.getUsername() +" "+filePath);
                         System.out.println("Sent FIL DEC to "+ sender.getUsername() +  " "+ filePath);
                         System.out.println("INFO: File transmission cannot be done");
+                        break;
                 }
             }
         }
@@ -388,7 +417,7 @@ public class ChatServer {
                 exist = true;
 
                 if (group.getClientsInGroup().contains(sender)) {
-                    for (ClientHandler clientHandler: group.getClientsInGroup()) {
+                    for (ClientHandler clientHandler : group.getClientsInGroup()) {
                         clientHandler.writeToClient("GRP BCST " + groupName + " " + sender.getUsername() + " " + message);
                     }
                 }
@@ -399,23 +428,36 @@ public class ChatServer {
         }
     }
 
-    public void sendFileToClient(ClientHandler sender,String receiver, String filePath){
-        boolean exist = false;
-
-        for (ClientHandler clientHandler:clientHandlers) {
-            if (clientHandler.getUsername().equals(receiver)) {
-                fileServer.sendToClient(sender,clientHandler,filePath);
-                exist = true;
-                System.out.println("sent file from chatserver");
-            }
-        }
-        if(!exist){
-          sender.writeToClient("ERR07 Username doesn't exist");
-        }
-    }
+//    public void sendFileToClient(ClientHandler sender, String receiver, String filePath, String checkSum){
+//        boolean exist = false;
+//
+//        for (ClientHandler clientHandler : clientHandlers) {
+//            if (clientHandler.getUsername().equals(receiver)) {
+//
+//                clientHandler.writeToClient("INC " + sender.getUsername() + " " + checkSum + " " + filePath);
+//                fileServer.sendToClient(sender, clientHandler,filePath);
+//                exist = true;
+//                System.out.println("sent file from chatserver");
+//            }
+//        }
+//        if(!exist){
+//          sender.writeToClient("ERR07 Username doesn't exist");
+//        }
+//    }
 
     public ArrayList<ClientHandler> getClients() {
         return clientHandlers;
+    }
+
+    public ClientHandler getClientByName(String username) {
+
+        for (ClientHandler client: clientHandlers) {
+            if (client.getUsername().equals(username)) {
+                return client;
+            }
+        }
+
+        return null;
     }
 
     public void setClients(ArrayList<ClientHandler> clientHandlers) {
