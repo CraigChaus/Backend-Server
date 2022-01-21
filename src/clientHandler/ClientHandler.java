@@ -202,34 +202,24 @@ public class ClientHandler extends Thread {
         //TODO: Handle all the commands like you did here
         switch (command) {
             case "GRP" -> {
-                if (payLoad.length < 3) {
-                    System.out.println("Command not valid");
-                } else {
-                    if (message.split(" ")[1].equals("BCST")) {
+
+                switch (payLoad[1]) {
+                    case "CRT", "JOIN", "EXIT" -> commandAndMessage = new String[]{payLoad[0] + " " + payLoad[1], payLoad[2]};
+
+                    case "BCST" -> {
                         String[] splitMessage = message.split(" ", 4);
                         commandAndMessage = new String[]{splitMessage[0] + " " + splitMessage[1], splitMessage[2], splitMessage[3]};
                     }
+
+                    case "LST" -> commandAndMessage = new String[]{payLoad[0] + " " + payLoad[1]};
                 }
-                if (payLoad.length < 2) {
-                    System.out.println("Command not valid");
-                } else {
-                    if (!message.split(" ")[1].equals("LST")) {
-                        commandAndMessage = new String[]{message.split(" ")[0] + " " + message.split(" ")[1]
-                                , message.split(" ", 3)[2]};
-                    }
-                }
-                if (payLoad.length < 3) {
-                    System.out.println("Command not valid");
-                } else {
-                    if (message.split(" ")[1].equals("JOIN") || message.split(" ")[1].equals("EXIT")) {
-                        commandAndMessage = new String[]{message.split(" ")[0] + " " + message.split(" ")[1]};
-                    }
-                }
+
            }
             case "PMSG"-> {
                 String[] splitMessage = message.split(" ", 3);
                 commandAndMessage = new String[]{splitMessage[0], splitMessage[1], splitMessage[2]};
             }
+
             case "FIL" -> {
                 if (message.split(" ")[1].equals("ACK")) {
                     String[] splitMessageAck = message.split(" ");
@@ -238,6 +228,10 @@ public class ClientHandler extends Thread {
                     String[] splitMessageSnd = message.split(" ");
                     commandAndMessage = new String[]{splitMessageSnd[0] + " " + splitMessageSnd[1], splitMessageSnd[2], splitMessageSnd[3], splitMessageSnd[4]};
                 }
+            }
+
+            case "ENC", "ENCSK" -> {
+                commandAndMessage = new String[]{command, payLoad[1], payLoad[2]};
             }
             default -> commandAndMessage = new String[]{command, message.split(" ", 2)[1]};
         }

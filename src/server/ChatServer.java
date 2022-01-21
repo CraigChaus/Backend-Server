@@ -41,39 +41,6 @@ public class ChatServer {
         var serverSocket = new ServerSocket(1337);
         var serverFileSocket = new ServerSocket(1338);
 
-//        new Thread(() -> {
-//            while (true) {
-//                // Wait for an incoming client-connection request (blocking).
-//                try {
-//                    Socket fileSocket = serverFileSocket.accept();
-//
-//                    DataInputStream dataInputStream = new DataInputStream(fileSocket.getInputStream());
-//
-//                    int receiverNameLength = dataInputStream.readInt();
-//
-//                    if (receiverNameLength > 0) {
-//                        byte[] receiverBytes = new byte[receiverNameLength];
-//                        dataInputStream.readFully(receiverBytes,0, receiverBytes.length);
-//                        String receiver = new String(receiverBytes);
-//
-//                        int fileLength = dataInputStream.readInt();
-//
-//                        if (fileLength > 0) {
-//                            byte[] fileBytes = new byte[fileLength];
-//                            dataInputStream.readFully(fileBytes,0, fileLength);
-//
-//                            getClientByName(receiver).transferFile(fileBytes);
-//                        }
-//
-//                    }
-//
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-//
-//            }
-//        }).start();
-
         while (!serverSocket.isClosed()) {
             // Wait for an incoming client-connection request (blocking).
             Socket socket = serverSocket.accept();
@@ -297,9 +264,15 @@ public class ChatServer {
             if(group.getGroupName().equals(groupName)){
 
                 if (!group.getClientsInGroup().contains(client)) {
-                    group.addToGroup(client);
-                    client.writeToClient("OK JOIN " + groupName);
-                    System.out.println("OK JOIN");
+                    boolean added = group.addToGroup(client);
+                    if (added) {
+                        client.writeToClient("OK JOIN " + groupName);
+                        System.out.println(client.getUsername() + " joined " + groupName + " group");
+                    } else {
+                        // todo: create error
+                        System.out.println(client.getUsername() + " is already in the group!");
+                    }
+
                 } else {
                     client.writeToClient("ERR18 You are already in this group!");
                     System.out.println("ERR18 You are already in this group!");
@@ -326,8 +299,16 @@ public class ChatServer {
         for (Group group:groups) {
             if(group.getGroupName().equals(groupName)){
                 exist = true;
-                group.removeFromGroup(client);
-                client.writeToClient("OK EXIT");
+                boolean left = group.removeFromGroup(client);
+
+                if (left) {
+                    client.writeToClient("OK EXIT");
+                    System.out.println(client.getUsername() + " left " + groupName + " group");
+                } else {
+                    // todo: create error for client side
+                    System.out.println(client.getUsername() + " is not in " + groupName + " group");
+                }
+
             }
         }
 
@@ -355,8 +336,8 @@ public class ChatServer {
             }
         }
         if (!exist) {
-            sender.writeToClient("ERR... Client does not exist!");
-            System.out.println("ERR... Client does not exist!");
+            sender.writeToClient("ERR07 Username does not exist!");
+            System.out.println("ERR07 Username does not exist!");
         }
     }
 
@@ -377,6 +358,7 @@ public class ChatServer {
             }
         }
         if (!exist) {
+            // todo: check this part
             sender.writeToClient("ERR03 Please log in first");
             System.out.println("ERR07 Username does not exist");
         }
@@ -411,6 +393,7 @@ public class ChatServer {
         }
         if (!result) {
             sender.writeToClient("ERR07 Username doesn't exist");
+            System.out.println("ERR07 Username doesn't exist");
         }
     }
 
@@ -424,11 +407,14 @@ public class ChatServer {
                 if (group.getClientsInGroup().contains(sender)) {
                     for (ClientHandler clientHandler : group.getClientsInGroup()) {
                         clientHandler.writeToClient("GRP BCST " + groupName + " " + sender.getUsername() + " " + message);
+                        System.out.println("GRP BCST " + groupName + " " + sender.getUsername() + " " + message);
                     }
-                }
+                } else
+                    System.out.println("Sender is not in the group!");
             }
         }
         if (!exist) {
+            // todo: check this part
             sender.writeToClient("ERR... client.client.Group does not exist!");
         }
     }

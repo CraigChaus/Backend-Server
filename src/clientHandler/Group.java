@@ -24,18 +24,16 @@ public class Group {
         return clientsInGroup;
     }
 
-    public void addToGroup(ClientHandler clientHandler){
-        for (ClientHandler clientHandler1 : clientsInGroup) {
-            if(!clientHandler1.getUsername().equals(clientHandler.getUsername())){
-                clientsInGroup.add(clientHandler);
-            }
+    public boolean addToGroup(ClientHandler clientHandler){
+        if (!clientsInGroup.contains(clientHandler)) {
+            clientsInGroup.add(clientHandler);
+            return true;
         }
+
+        return false;
     }
-    public void removeFromGroup(ClientHandler clientHandler){
-        for (ClientHandler userName1: clientsInGroup) {
-            if(!userName1.getUsername().equals(clientHandler.getUsername())){
-                clientsInGroup.remove(clientHandler);
-            }
-        }
+
+    public boolean removeFromGroup(ClientHandler clientHandler){
+        return clientsInGroup.remove(clientHandler);
     }
 }
