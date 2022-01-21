@@ -55,8 +55,6 @@ public class ClientFileHandler extends Thread{
                         System.out.println("File bytes length is 0");
                     }
 
-
-
                 } else {
                     System.out.println("Receiver bytes length is 0");
                 }

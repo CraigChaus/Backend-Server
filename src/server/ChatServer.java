@@ -461,8 +461,58 @@ public class ChatServer {
                 return client;
             }
         }
-
         return null;
+    }
+
+    //The following methods only deal with encryption
+
+    /**
+     * First method in server, passes ENC to receiving client
+     * @param sender name of the sender
+     * @param receiverName name of the receiver
+     * @param publicKey the senders public key
+     */
+    public void forwardClientsPublicKey(ClientHandler sender, String receiverName, String publicKey){
+    boolean exist = false;
+
+        for (ClientHandler client: clientHandlers) {
+        if (client.getUsername().equals(receiverName)) {
+            exist = true;
+            client.writeToClient("ENC " + sender.getUsername() + " " + publicKey);
+            System.out.println("Sent ENC and public key to :"+ receiverName+ " public key "+ publicKey);
+            break;
+        }
+    }
+        if (!exist) {
+        sender.writeToClient("ERR07 Username does not exist");
+        System.out.println("ERR07 Username does not exist");
+        }
+    }
+
+    public void forwardEncryptedSessionKey(ClientHandler sender, String receiverName, String encryptedSessionKey){
+        for (ClientHandler client: clientHandlers) {
+            if (client.getUsername().equals(receiverName)) {
+
+                client.writeToClient("ENCSK " + sender.getUsername() + " " + encryptedSessionKey);
+
+                //TODO: For testing purposes only, please delete when it works perfectly
+                System.out.println("Sent ENC and public key to :"+ receiverName+ " public key "+ encryptedSessionKey);
+                break;
+            }
+        }
+    }
+
+    public void forwardEncryptedMessageToclient(ClientHandler sender, String receiverName, String encryptedMessage){
+        for (ClientHandler client: clientHandlers) {
+            if (client.getUsername().equals(receiverName)) {
+
+                client.writeToClient("ENCM " + sender.getUsername() + " " + encryptedMessage);
+
+                //TODO: For testing purposes only, please delete when it works perfectly
+                System.out.println("Sent ENCM and message to :"+ receiverName+ " ++Message:"+ encryptedMessage);
+                break;
+            }
+        }
     }
 
     public void setClients(ArrayList<ClientHandler> clientHandlers) {

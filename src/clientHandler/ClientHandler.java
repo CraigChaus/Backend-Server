@@ -155,7 +155,6 @@ public class ClientHandler extends Thread {
                     //TODO: implement sending file
 //                    chatServer.sendFileToClient(this,command[1],command[3], command[2]);
 
-
                 }
                 break;
 
@@ -179,6 +178,18 @@ public class ClientHandler extends Thread {
                 chatServer.authenticateMe(message.split(" ")[1], this);
                 break;
 
+            case "ENC":
+                chatServer.forwardClientsPublicKey(this,command[1],command[2]);
+                break;
+            case "ENCSK":
+                chatServer.forwardEncryptedSessionKey(this,command[1],command[2]);
+                break;
+            case "ENCM":
+                chatServer.forwardEncryptedMessageToclient(this,command[1],command[2]);
+            break;
+
+            default:
+                writeToClient("ERR00 Unknown command");
         }
     }
 
