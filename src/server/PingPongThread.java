@@ -12,20 +12,20 @@ public class PingPongThread extends Thread{
 
     @Override
     public void run() {
-//        while (true) {
-//
-//            PrintWriter writer = new PrintWriter(outputStream);
-//
-//            writer.println("PING");
-//            writer.flush();
+        while (true) {
+
+            PrintWriter writer = new PrintWriter(outputStream);
+
+            writer.println("PING");
+            writer.flush();
 //            System.out.println(">>>> PING");
-//
-//            try {
-//                Thread.sleep(3000);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//
-//        }
+
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        }
     }
 }

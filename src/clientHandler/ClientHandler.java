@@ -1,11 +1,9 @@
 package clientHandler;
 
-import server.FileTransferHandler;
 import server.ChatServer;
 
 import java.io.*;
 import java.net.Socket;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.regex.Matcher;
@@ -17,47 +15,51 @@ public class ClientHandler extends Thread {
     private String password;
     private boolean encryptionSessionActive;
 
+    private final ChatServer chatServer;
 
-    private ChatServer chatServer;
-    private FileTransferHandler fileTransferHandler;
-    private Socket socket;
+    private final Socket messageSocket;
     private Socket fileSocket;
-    private InputStream inputStream;
-    private OutputStream outputStream;
-    private BufferedReader serverReader;
-    private PrintWriter writer;
-    private String receivedMessage;
 
-    public ClientHandler(Socket socket, ChatServer chatServer) {
-        this.status = null;
+    private PrintWriter writer;
+
+    public ClientHandler(Socket messageSocket, ChatServer chatServer, Socket fileSocket) {
+        this.fileSocket = fileSocket;
+        this.status = Statuses.CONNECTED;
         this.username = "";
         this.password = "";
-        this.encryptionSessionActive = false;
-        this.socket = socket;
+        this.messageSocket = messageSocket;
         this.chatServer = chatServer;
+
     }
 
     @Override
     public void run() {
         System.out.println("New user is connected");
-        while (true) {
+        while (!messageSocket.isClosed()) {
             try {
-                inputStream = socket.getInputStream();
-                outputStream = socket.getOutputStream();
 
-                serverReader = new BufferedReader(new InputStreamReader(inputStream));
+                InputStream inputStream = messageSocket.getInputStream();
+                OutputStream outputStream = messageSocket.getOutputStream();
+
+                BufferedReader serverReader = new BufferedReader(new InputStreamReader(inputStream));
                 writer = new PrintWriter(outputStream);
 
-                receivedMessage = serverReader.readLine();
+                String receivedMessage = serverReader.readLine();
 
                 if (receivedMessage.equals("PONG")) {
-                    System.out.println("<<<< PONG");
+//                    System.out.println("<<<< PONG");
                 } else {
                     processMessage(receivedMessage);
                 }
 
             } catch (IOException e) {
-                e.printStackTrace();
+                try {
+                    messageSocket.close();
+                    System.out.println("User " + username + " disconnected");
+                } catch (IOException ioException) {
+                    ioException.printStackTrace();
+                }
+
             }
         }
 
@@ -68,6 +70,11 @@ public class ClientHandler extends Thread {
 
         switch (command[0]) {
             case "CONN":
+
+                if (status != Statuses.CONNECTED) {
+                    writeToClient("ERR you are already logged in!");
+                    break;
+                }
                 String username = command[1];
 
                 boolean isUsernameAcceptable = checkUsername(username);
@@ -146,7 +153,9 @@ public class ClientHandler extends Thread {
             case "FIL SND":
                 if(checkIfLoggedIn()){
                     //TODO: implement sending file
-                    chatServer.sendFileToClient(this,command[1],command[3]);
+//                    chatServer.sendFileToClient(this,command[1],command[3], command[2]);
+
+
                 }
                 break;
 
@@ -170,14 +179,6 @@ public class ClientHandler extends Thread {
                 chatServer.authenticateMe(message.split(" ")[1], this);
                 break;
 
-            case "ENC":
-                chatServer.giveClientsThePublicKeys(this,command[1]);
-                break;
-
-            case "PV":
-                long publicValue = Long.parseLong(command[2]);
-                chatServer.passPublicValueToOtherClient(this,command[1],publicValue);
-                break;
         }
     }
 
@@ -232,12 +233,31 @@ public class ClientHandler extends Thread {
         return commandAndMessage;
     }
 
-    public boolean checkUsername(String username) {
-        Pattern pattern = Pattern.compile("[- !@#$%^&*()+=|/?.>,<`~]", Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(username);
+    public void transferFile(String receiver, byte[] fileBytes) {
 
-        // Return true if there are no characters from the list above, and returns false, if the match is found
-        return !matcher.find();
+        ClientHandler receiverClient = chatServer.getClientByName(receiver);
+
+        if (receiverClient == null) {
+            System.out.println("Client to send file to is not found!");
+        } else {
+            try {
+                System.out.println("We are transferring file to " + receiverClient.getUsername());
+                receiverClient.sendFile(fileBytes);
+            } catch (IOException e) {
+                System.err.println("Exception in transferring file!");
+
+            }
+
+        }
+    }
+
+    public void sendFile(byte[] bytes) throws IOException {
+        System.out.println("Send file method of client: " + username);
+        OutputStream outputStream = fileSocket.getOutputStream();
+        DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
+
+        dataOutputStream.writeInt(bytes.length);
+        dataOutputStream.write(bytes);
     }
 
     public void writeToClient(String message) {
@@ -252,6 +272,14 @@ public class ClientHandler extends Thread {
             writeToClient("ERR03 Please log in first");
             return false;
         }
+    }
+
+    public boolean checkUsername(String username) {
+        Pattern pattern = Pattern.compile("[- !@#$%^&*()+=|/?.>,<`~]", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(username);
+
+        // Return true if there are no characters from the list above, and returns false, if the match is found
+        return !matcher.find();
     }
 
     public boolean checkIfAuthenticated() {
