@@ -482,7 +482,7 @@ public class ChatServer {
                 client.writeToClient("ENCSK " + sender.getUsername() + " " + encryptedSessionKey);
 
                 //TODO: For testing purposes only, please delete when it works perfectly
-                System.out.println("Sent ENC and public key to :"+ receiverName+ " public key "+ encryptedSessionKey);
+                System.out.println("Sent ENCSK and session key to :"+ receiverName+ " session key "+ encryptedSessionKey);
                 break;
             }
         }
@@ -495,7 +495,7 @@ public class ChatServer {
                 client.writeToClient("ENCM " + sender.getUsername() + " " + encryptedMessage);
 
                 //TODO: For testing purposes only, please delete when it works perfectly
-                System.out.println("Sent ENCM and message to :"+ receiverName+ " ++Message:"+ encryptedMessage);
+                System.out.println("Sent ENCM and message to :"+ receiverName+ " ++Message: "+ encryptedMessage);
                 break;
             }
         }
