@@ -1,5 +1,6 @@
 package clientHandler;
 
+import fileHandler.ClientFileHandler;
 import server.ChatServer;
 
 import java.io.*;
@@ -44,6 +45,7 @@ public class ClientHandler extends Thread {
                 BufferedReader serverReader = new BufferedReader(new InputStreamReader(inputStream));
                 writer = new PrintWriter(outputStream);
 
+
                 String receivedMessage = serverReader.readLine();
 
                 if (receivedMessage.equals("PONG")) {
@@ -55,7 +57,9 @@ public class ClientHandler extends Thread {
             } catch (IOException e) {
                 try {
                     messageSocket.close();
+                    status = Statuses.DISCONNECTED;
                     System.out.println("User " + username + " disconnected");
+
                 } catch (IOException ioException) {
                     ioException.printStackTrace();
                 }
@@ -71,20 +75,22 @@ public class ClientHandler extends Thread {
         switch (command[0]) {
             case "CONN":
 
-                if (status != Statuses.CONNECTED) {
-                    writeToClient("ERR you are already logged in!");
-                    break;
-                }
-                String username = command[1];
+                if (status == Statuses.CONNECTED || status == Statuses.DISCONNECTED) {
+                    String username = command[1];
 
-                boolean isUsernameAcceptable = checkUsername(username);
+                    boolean isUsernameAcceptable = checkName(username);
 
-                if (!isUsernameAcceptable||command.length < 2) {
-                    writeToClient("ERR02 Username has an invalid format or is empty(only characters, numbers and underscores are allowed)");
-                    //TODO: change on protocol
+                    if (!isUsernameAcceptable) {
+                        writeToClient("ERR02 Name has an invalid format or is empty(only characters, numbers and underscores are allowed)");
+                        
+                    } else {
+                        chatServer.loginUser(this, username);
+                    }
+
                 } else {
-                    chatServer.loginUser(this, username);
+                    writeToClient("ERR you are already logged in!");
                 }
+
                 break;
 
             case "BCST":
@@ -107,7 +113,10 @@ public class ClientHandler extends Thread {
 
             case "GRP CRT":
                 if (checkIfLoggedIn()) {
-                    chatServer.createGroup(command[1], this);
+                    if (checkName(command[1]))
+                        chatServer.createGroup(command[1], this);
+                    else
+                        writeToClient("ERR02 Name has an invalid format or is empty(only characters, numbers and underscores are allowed)");
                 }
 
                 break;
@@ -150,12 +159,18 @@ public class ClientHandler extends Thread {
 
                 }
                 break;
-            case "FIL SND":
-                if(checkIfLoggedIn()){
-                    //TODO: implement sending file
-//                    chatServer.sendFileToClient(this,command[1],command[3], command[2]);
 
+            case "FIL SND":
+                // Send file if logged id
+                if(checkIfLoggedIn()){
+                    if (checkName(command[3])) {
+                        chatServer.sendFileToClient(this, command[1], command[2], command[3]);
+                        ClientHandler receiverClient = chatServer.getClientByName(command[1]);
+                        new ClientFileHandler(this, receiverClient, fileSocket).start();
+                    } else
+                        writeToClient("ERR02 Name has an invalid format or is empty(only characters, numbers and underscores are allowed)");
                 }
+
                 break;
 
             case "ACC":
@@ -181,15 +196,24 @@ public class ClientHandler extends Thread {
             case "ENC":
                 chatServer.forwardClientsPublicKey(this,command[1],command[2]);
                 break;
+
             case "ENCSK":
                 chatServer.forwardEncryptedSessionKey(this,command[1],command[2]);
                 break;
+
             case "ENCM":
                 chatServer.forwardEncryptedMessageToclient(this,command[1],command[2]);
-            break;
+                break;
+
+            case "QUIT":
+                chatServer.disconnectFromTheServer(this);
+                messageSocket.close();
+                System.out.println("User " + username + " disconnected");
+                break;
 
             default:
                 writeToClient("ERR00 Unknown command");
+                break;
         }
     }
 
@@ -201,71 +225,68 @@ public class ClientHandler extends Thread {
 
         //TODO: Handle all the commands like you did here
         switch (command) {
-            case "GRP" -> {
+            case "GRP":
 
                 switch (payLoad[1]) {
-                    case "CRT", "JOIN", "EXIT" -> commandAndMessage = new String[]{payLoad[0] + " " + payLoad[1], payLoad[2]};
+                    case "CRT", "JOIN", "EXIT":
+                        commandAndMessage = new String[]{payLoad[0] + " " + payLoad[1], payLoad[2]};
+                        break;
 
-                    case "BCST" -> {
+                    case "BCST":
                         String[] splitMessage = message.split(" ", 4);
                         commandAndMessage = new String[]{splitMessage[0] + " " + splitMessage[1], splitMessage[2], splitMessage[3]};
-                    }
+                        break;
 
-                    case "LST" -> commandAndMessage = new String[]{payLoad[0] + " " + payLoad[1]};
+                    case "LST":
+                        commandAndMessage = new String[]{payLoad[0] + " " + payLoad[1]};
+                        break;
                 }
 
-           }
-            case "PMSG"-> {
+                break;
+
+
+            case "PMSG":
+
                 String[] splitMessage = message.split(" ", 3);
                 commandAndMessage = new String[]{splitMessage[0], splitMessage[1], splitMessage[2]};
-            }
+                break;
 
-            case "FIL" -> {
-                if (message.split(" ")[1].equals("ACK")) {
-                    String[] splitMessageAck = message.split(" ");
-                    commandAndMessage = new String[]{splitMessageAck[0] + " " + splitMessageAck[1], splitMessageAck[2],splitMessageAck[3]};
-                } else if (message.split(" ")[1].equals("SND")) {
-                    String[] splitMessageSnd = message.split(" ");
-                    commandAndMessage = new String[]{splitMessageSnd[0] + " " + splitMessageSnd[1], splitMessageSnd[2], splitMessageSnd[3], splitMessageSnd[4]};
+            case "FIL":
+
+                switch (payLoad[1]) {
+                    case "ACK":
+                        commandAndMessage = new String[]{payLoad[0] + " " + payLoad[1], payLoad[2],payLoad[3]};
+                        break;
+
+                    case "SND":
+                        commandAndMessage = new String[]{payLoad[0] + " " + payLoad[1], payLoad[2], payLoad[3], payLoad[4]};
+                        break;
                 }
-            }
 
-            case "ENC", "ENCSK", "ENCM" -> {
+                break;
+
+            case "ENC", "ENCSK", "ENCM":
                 commandAndMessage = new String[]{command, payLoad[1], payLoad[2]};
-            }
+                break;
 
-            case "LST" -> commandAndMessage = new String[]{command};
+            case "LST", "QUIT":
+                commandAndMessage = new String[]{command};
+                break;
 
-            default -> commandAndMessage = new String[]{command, message.split(" ", 2)[1]};
+            default:
+                commandAndMessage = new String[]{command, message.split(" ", 2)[1]};
+                break;
         }
         return commandAndMessage;
     }
 
-    public void transferFile(String receiver, byte[] fileBytes) {
-
-        ClientHandler receiverClient = chatServer.getClientByName(receiver);
-
-        if (receiverClient == null) {
-            System.out.println("Client to send file to is not found!");
-        } else {
-            try {
-                System.out.println("We are transferring file to " + receiverClient.getUsername());
-                receiverClient.sendFile(fileBytes);
-            } catch (IOException e) {
-                System.err.println("Exception in transferring file!");
-
-            }
-
-        }
-    }
-
-    public void sendFile(byte[] bytes) throws IOException {
-        System.out.println("Send file method of client: " + username);
+    public void sendFile(byte[] fileBytes) throws IOException {
         OutputStream outputStream = fileSocket.getOutputStream();
         DataOutputStream dataOutputStream = new DataOutputStream(outputStream);
 
-        dataOutputStream.writeInt(bytes.length);
-        dataOutputStream.write(bytes);
+        // Sending file length and bytes
+        dataOutputStream.writeInt(fileBytes.length);
+        dataOutputStream.write(fileBytes);
     }
 
     public void writeToClient(String message) {
@@ -274,7 +295,7 @@ public class ClientHandler extends Thread {
     }
 
     public boolean checkIfLoggedIn() {
-        if (status.equals(Statuses.LOGGED_IN)) {
+        if (status.equals(Statuses.LOGGED_IN) || status.equals(Statuses.AUTHENTICATED)) {
             return true;
         } else {
             writeToClient("ERR03 Please log in first");
@@ -282,9 +303,9 @@ public class ClientHandler extends Thread {
         }
     }
 
-    public boolean checkUsername(String username) {
+    public boolean checkName(String name) {
         Pattern pattern = Pattern.compile("[- !@#$%^&*()+=|/?.>,<`~]", Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(username);
+        Matcher matcher = pattern.matcher(name);
 
         // Return true if there are no characters from the list above, and returns false, if the match is found
         return !matcher.find();
