@@ -3,8 +3,6 @@ package server;
 import clientHandler.ClientHandler;
 import clientHandler.Group;
 import clientHandler.Statuses;
-import fileHandler.ClientFileHandler;
-import fileHandler.FileServer;
 import hashing.PasswordHash;
 
 import java.io.IOException;
@@ -19,18 +17,13 @@ import java.util.regex.Pattern;
 public class ChatServer {
     private ArrayList<ClientHandler> clientHandlers;
     private ArrayList<Group> groups;
-    private String[] commands;
     private PasswordHash passwordHash;
-    private FileServer fileServer;
     private long primeKeyG,rootKeyG;
 
     public ChatServer() {
         clientHandlers = new ArrayList<>();
         this.groups = new ArrayList<>();
-        commands = new String[]{"CONN", "BCST", "QUIT", "AUTH", "LST", "GRP CRT", "GRP LST", "GRP EXIT", "GRP JOIN",
-                "GRP BCST", "PMSG","FIL ACK","FIL SND","INC"};
         this.passwordHash = new PasswordHash();
-        fileServer = new FileServer();
 
         //TODO: change the values later on when testing
         primeKeyG = 23;
@@ -51,22 +44,30 @@ public class ChatServer {
             ClientHandler clientHandler = new ClientHandler(socket,this, fileSocket);
             clientHandler.start();
 
-            ClientFileHandler clientFileHandler = new ClientFileHandler(clientHandler, fileSocket);
-            clientFileHandler.start();
-
-
             // TODO: Start a ping thread for each connecting client.
             PingPongThread pongThread = new PingPongThread(socket.getOutputStream());
             pongThread.start();
         }
     }
 
+    /**
+     * Login with username. If username already exists, but the status is disconnected, the old client handler is deleted from array list
+     * while the new one is added with old information (username, password). There could be a better way of doing it, such as having Client
+     * object separate from ClientHandler and instead of storing client handlers in array list, we would store clients objects. And thus,
+     * we could delete client handler from client when it disconnects, and add new client handler when it connects. But we realised the
+     * problem with disconnection too late, so we did not have time to implement this way properly.
+     *
+     * @param user User who wants to login with username
+     * @param username Username user wants to have
+     */
     public void loginUser(ClientHandler user, String username) {
         boolean usernameExists = false;
+        ClientHandler foundUser = null;
 
         for (ClientHandler client: clientHandlers) {
             if (username.equalsIgnoreCase(client.getUsername())) {
                 usernameExists = true;
+                foundUser = client;
             }
         }
 
@@ -77,6 +78,14 @@ public class ChatServer {
             user.writeToClient("OK CONN " + username);
             System.out.println("OK CONN " + username);
 
+        } else if(foundUser.getStatus() == Statuses.DISCONNECTED) {
+            user.setStatus(Statuses.LOGGED_IN);
+            user.setUsername(username);
+            user.setPassword(foundUser.getPassword());
+            clientHandlers.remove(foundUser);
+            clientHandlers.add(user);
+            user.writeToClient("OK CONN " + username);
+            System.out.println("OK CONN " + username);
         } else {
             user.writeToClient("ERR01 This username already exists");
         }
@@ -84,12 +93,12 @@ public class ChatServer {
     }
 
     /**
-     *
+     *  Password verification method
      * @param password password to check
      * @param clientHandler client who tries to authenticate
      * @throws IOException
      * @throws NoSuchAlgorithmException
-     * Password verification method
+     *
      */
     public void authenticateMe(String password, ClientHandler clientHandler){
 
@@ -101,14 +110,13 @@ public class ChatServer {
                 clientHandler.writeToClient("ERR 12 Create password");
 
             } else {
-                System.out.println("Clients password to check: " + clientHandler.getPassword());
                 boolean result = passwordHash.checkPassword(password, clientHandler.getPassword());
-                System.out.println("IS AUTHENTICATED: " + result);
 
                 if (result) {
                     clientHandler.setStatus(Statuses.AUTHENTICATED);
                     clientHandler.writeToClient("OK AUTH");
-                    //TODO: Implement authentication feature for noticing authed usernames
+                } else {
+                    clientHandler.writeToClient("ERR10 Invalid password");
                 }
 
             }
@@ -118,52 +126,48 @@ public class ChatServer {
     }
 
     /**
-     *
-     * @param password
-     * @param clientHandler
+     *  create password method
+     * @param password Password to hash
+     * @param clientHandler Client who tries to create a password
      * @throws NoSuchAlgorithmException
-     * create password method
+     *
      */
     public void createPassword(String password, ClientHandler clientHandler) throws InvalidKeySpecException, NoSuchAlgorithmException {
 
-        if((password.length() >= 8)) {
-            Pattern pattern = Pattern.compile("[- !@#$%^&*()+=|/?.>,<`~]", Pattern.CASE_INSENSITIVE);
-            Matcher matcher = pattern.matcher(password);
-            boolean matchFound = matcher.find();
+        Pattern pattern = Pattern.compile("[- !@#$%^&*()+=|/?.>,<`~]", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(password);
 
-            if(matchFound){
+        boolean matchFound = matcher.find();
 
-//                String salt = BCrypt.gensalt();
-//                String hashedPasswordCreated = BCrypt.hashpw(passWord, salt);
+        if(matchFound && (password.length() >= 8)){
+            String hashedPasswordCreated = passwordHash.hashPassword(password);
 
-                String hashedPasswordCreated = passwordHash.hashPassword(password);
-                System.out.println(hashedPasswordCreated);
+            clientHandler.setPassword(hashedPasswordCreated);
+            clientHandler.writeToClient("OK PASS");
 
-                clientHandler.setPassword(hashedPasswordCreated);
-                clientHandler.writeToClient("OK PASS");
-                System.out.println("password created");
-
-            }else{
-                clientHandler.writeToClient("ERR08 Weak Password");
-                System.out.println("Weak password");
-            }
-
-        }else{
-            clientHandler.writeToClient("ERR10 Invalid password");
-            System.out.println("Invalid password");
-        }
-    }
-
-    public void sendBroadcastToEveryone(ClientHandler user, String message) {
-        for (ClientHandler client: clientHandlers) {
-            client.writeToClient(commands[1] + " " + user.getUsername() + " " + message);
+        } else {
+            clientHandler.writeToClient("ERR08 Weak Password");
         }
 
-        user.writeToClient("OK " + commands[1] + " " + message);
+
     }
 
     /**
-     * METHOD 1: Printing out a list of all clients connected to the server
+     * Send broadcast message to everyone
+     * @param user User who wants to send the message
+     * @param message Message text
+     */
+    public void sendBroadcastToEveryone(ClientHandler user, String message) {
+        for (ClientHandler client: clientHandlers) {
+            client.writeToClient("BCST " + user.getUsername() + " " + message);
+        }
+
+        user.writeToClient("OK " + "BCST " + message);
+    }
+
+    /**
+     * Send a list of all clients connected to the server
+     * @param client Client who wants a list of clients
      */
     public void listAllClients(ClientHandler client) {
         String clientsList = "";
@@ -175,19 +179,19 @@ public class ChatServer {
                 authenticated = 1;
             }
 
-            clientsList += authenticated + " " + loopingClient;
+            clientsList += authenticated + " " + loopingClient.getUsername();
 
             if (i < clientHandlers.size() - 1) {
                 clientsList += ",";
             }
         }
 
-        client.writeToClient("OK " + commands[4] + " " + clientsList);
-        System.out.println("OK " + commands[4] + " " + clientsList);
+        client.writeToClient("OK LST " + clientsList);
+        System.out.println("OK LST " + clientsList);
     }
 
     /**
-     * METHOD2: Creating a new group
+     * Creating a new group
      * @param groupName name of the group that user wants to create
      */
     public void createGroup(String groupName, ClientHandler client){
@@ -219,7 +223,8 @@ public class ChatServer {
     }
 
     /**
-     * METHOD 3: Listing all the groups connected to the server
+     * List all groups
+     * @param client Client who asked for list
      */
     public void listAllGroups(ClientHandler client){
 
@@ -233,26 +238,8 @@ public class ChatServer {
         System.out.println("OK GRPLST");
     }
 
-    //THIS METHOD IS MEANT TO LIST ALL CLIENTS IN A GROUP
-//    public void listAllClientsInGroup(client.client.client.Group groupName){
-//
-//        PrintWriter writer = new PrintWriter(outputStream);
-//
-//        if(groups.contains(groupName)){
-//
-//            writer.println("OK LST ");
-//            writer.flush();
-//
-//            for (client.client.client.Group group:groups) {
-//                writer.print(group.getClientsInGroup()+" , ");
-//                writer.flush();
-//            }
-//
-//        }
-//    }
-
     /**
-     * Method 4: Joining an existing group
+     * Joining an existing group
      * @param groupName
      * @param client
      */
@@ -283,15 +270,15 @@ public class ChatServer {
         }
 
         if (!exist) {
-            client.writeToClient("ER06 Group does not exist");
-            System.out.println("ER06 Group does not exist");
+            client.writeToClient("ERR06 Group does not exist");
+            System.out.println("ERR06 Group does not exist");
         }
     }
 
     /**
-     * Method 5: Leaving a group chat
-     * @param groupName
-     * @param client
+     * Leaving a group chat
+     * @param groupName Group name client wants to leave
+     * @param client Client who wants to leave
      */
     public void leaveGroupChat(String groupName, ClientHandler client){
         boolean exist = false;
@@ -313,21 +300,21 @@ public class ChatServer {
         }
 
         if (!exist) {
-            client.writeToClient("ERR06 client.client.Group does not exist!");
+            client.writeToClient("ERR06 Group does not exist!");
         }
     }
 
     /**
      * Sending private message
-     * @param sender
-     * @param receiverName
-     * @param message
+     * @param sender Sender of the message
+     * @param receiverName Name of the receiver
+     * @param message Private message text
      */
     public void sendPrivateMessage(ClientHandler sender, String receiverName, String message) {
         boolean exist = false;
 
         for (ClientHandler client: clientHandlers) {
-            if (client.getUsername().equals(receiverName)) {
+            if (client.getUsername().equals(receiverName) && !receiverName.equals(sender.getUsername())) {
                 exist = true;
                 client.writeToClient("PMSG " + sender.getUsername() + " " + message);
                 sender.writeToClient("OK PMSG");
@@ -336,8 +323,8 @@ public class ChatServer {
             }
         }
         if (!exist) {
-            sender.writeToClient("ERR07 Username does not exist!");
-            System.out.println("ERR07 Username does not exist!");
+            sender.writeToClient("ERR16 You cannot send anything to yourself");
+            System.out.println("ERR07 Username does not exist");
         }
     }
 
@@ -348,19 +335,22 @@ public class ChatServer {
      * @param filePath is the absolute file path of te doc to be sent
      */
     public void sendAcknowledgement(ClientHandler sender, String receiverName, String filePath){
-        boolean exist = false;
+        ClientHandler foundClient = null;
 
         for (ClientHandler client: clientHandlers) {
             if (client.getUsername().equals(receiverName)) {
-                exist = true;
-                client.writeToClient("ACK "+ sender.getUsername() + " "+ filePath);
-                System.out.println("ACK forwarded to client "+client.getUsername()+ " file: "+filePath);
+                foundClient = client;
             }
         }
-        if (!exist) {
-            // todo: check this part
-            sender.writeToClient("ERR03 Please log in first");
+
+        if (foundClient != null && !receiverName.equals(sender.getUsername())) {
+            foundClient.writeToClient("ACK "+ sender.getUsername() + " "+ filePath);
+            System.out.println("ACK forwarded to client " + foundClient.getUsername() + " file: " + filePath);
+        } else if (foundClient == null) {
+            sender.writeToClient("ERR07 Username does not exist");
             System.out.println("ERR07 Username does not exist");
+        } else if (receiverName.equals(sender.getUsername())) {
+            sender.writeToClient("ERR16 You cannot send anything to yourself");
         }
     }
 
@@ -397,6 +387,12 @@ public class ChatServer {
         }
     }
 
+    /**
+     * Send broadcast message to the group
+     * @param sender Sender of the message
+     * @param groupName Group name sender wants to send message to
+     * @param message Message text
+     */
     public void sendBroadcastToGroup(ClientHandler sender, String groupName, String message) {
         boolean exist = false;
 
@@ -414,31 +410,37 @@ public class ChatServer {
             }
         }
         if (!exist) {
-            // todo: check this part
-            sender.writeToClient("ERR... client.client.Group does not exist!");
+            sender.writeToClient("ERR06 Group does not exist");
         }
     }
 
-//    public void sendFileToClient(ClientHandler sender, String receiver, String filePath, String checkSum){
-//        boolean exist = false;
-//
-//        for (ClientHandler clientHandler : clientHandlers) {
-//            if (clientHandler.getUsername().equals(receiver)) {
-//
-//                clientHandler.writeToClient("INC " + sender.getUsername() + " " + checkSum + " " + filePath);
-//                fileServer.sendToClient(sender, clientHandler,filePath);
-//                exist = true;
-//                System.out.println("sent file from chatserver");
-//            }
-//        }
-//        if(!exist){
-//          sender.writeToClient("ERR07 Username doesn't exist");
-//        }
-//    }
+    /**
+     * Send file to client
+     * @param sender Sender of the file
+     * @param receiver Name of the client who will receive file
+     * @param checkSum Checksum of the file
+     * @param filename Filename
+     */
+    public void sendFileToClient(ClientHandler sender, String receiver, String checkSum, String filename){
+        boolean exist = false;
+
+        for (ClientHandler clientHandler : clientHandlers) {
+            if (clientHandler.getUsername().equals(receiver)) {
+
+                clientHandler.writeToClient("INC " + sender.getUsername() + " " + checkSum + " " + filename);
+                System.out.println("INC " + sender.getUsername() + " " + checkSum + " " + filename);
+                exist = true;
+            }
+        }
+        if(!exist){
+          sender.writeToClient("ERR07 Username doesn't exist");
+        }
+    }
 
     public ArrayList<ClientHandler> getClients() {
         return clientHandlers;
     }
+
 
     public ClientHandler getClientByName(String username) {
 
@@ -459,19 +461,22 @@ public class ChatServer {
      * @param publicKey the senders public key
      */
     public void forwardClientsPublicKey(ClientHandler sender, String receiverName, String publicKey){
-    boolean exist = false;
+        boolean exist = false;
 
         for (ClientHandler client: clientHandlers) {
-        if (client.getUsername().equals(receiverName)) {
-            exist = true;
-            client.writeToClient("ENC " + sender.getUsername() + " " + publicKey);
-            System.out.println("Sent ENC and public key to :"+ receiverName+ " public key "+ publicKey);
-            break;
+            if (client.getUsername().equals(receiverName) && !sender.getUsername().equals(receiverName)) {
+                exist = true;
+                client.writeToClient("ENC " + sender.getUsername() + " " + publicKey);
+                System.out.println("Sent ENC and public key to :"+ receiverName+ " public key "+ publicKey);
+                break;
+            }
         }
-    }
-        if (!exist) {
-        sender.writeToClient("ERR07 Username does not exist");
-        System.out.println("ERR07 Username does not exist");
+
+        if (!exist && !sender.getUsername().equals(receiverName)) {
+            sender.writeToClient("ERR07 Username does not exist");
+            System.out.println("ERR07 Username does not exist");
+        } else if (sender.getUsername().equals(receiverName)){
+            sender.writeToClient("ERR16 You cannot send anything to yourself");
         }
     }
 
@@ -498,6 +503,15 @@ public class ChatServer {
                 System.out.println("Sent ENCM and message to :"+ receiverName+ " ++Message: "+ encryptedMessage);
                 break;
             }
+        }
+    }
+
+    public void disconnectFromTheServer(ClientHandler client) {
+        if (clientHandlers.contains(client)) {
+            client.setStatus(Statuses.DISCONNECTED);
+            System.out.println(client.getStatus());
+            client.writeToClient("OK QUIT");
+            System.out.println("OK QUIT");
         }
     }
 
