@@ -230,15 +230,12 @@ public class ClientHandler extends Thread {
                 }
             }
 
-            case "ENC" -> {
+            case "ENC", "ENCSK", "ENCM" -> {
                 commandAndMessage = new String[]{command, payLoad[1], payLoad[2]};
             }
-            case "ENCSK" -> {
-                commandAndMessage = new String[]{command, payLoad[1], payLoad[2]};
-            }
-            case "ENCM" -> {
-                commandAndMessage = new String[]{command, payLoad[1], payLoad[2]};
-            }
+
+            case "LST" -> commandAndMessage = new String[]{command};
+
             default -> commandAndMessage = new String[]{command, message.split(" ", 2)[1]};
         }
         return commandAndMessage;

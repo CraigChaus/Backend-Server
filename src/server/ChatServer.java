@@ -175,7 +175,7 @@ public class ChatServer {
                 authenticated = 1;
             }
 
-            clientsList += authenticated + " " + loopingClient;
+            clientsList += authenticated + " " + loopingClient.getUsername();
 
             if (i < clientHandlers.size() - 1) {
                 clientsList += ",";
