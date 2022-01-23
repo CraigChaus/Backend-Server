@@ -7,7 +7,7 @@ public class PingPongThread extends Thread{
     private final OutputStream outputStream;
 
     //TODO: For testing please turn this to false before running the automated tests
-    private  boolean active = true;
+    private  boolean active = false;
 
     public PingPongThread(OutputStream outputStream) {
         this.outputStream = outputStream;
