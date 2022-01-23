@@ -50,7 +50,6 @@ public class ClientHandler extends Thread {
 
                 String receivedMessage = serverReader.readLine();
 
-                //TODO: FIX PING PONG
                 if (receivedMessage.equals("PONG")) {
                     System.out.println("<<<< PONG");
                 } else {
@@ -164,13 +163,9 @@ public class ClientHandler extends Thread {
             case "FIL SND":
                 // Send file if logged id
                 if(checkIfLoggedIn()){
-                    if (checkName(command[3])) {
-                        chatServer.sendFileToClient(this, command[1], command[2], command[3]); //Send the file
-                        ClientHandler receiverClient = chatServer.getClientByName(command[1]);
-                        new ClientFileHandler(this, receiverClient, fileSocket).start();
-                    } else
-                        writeToClient("ERR02 Name has an invalid format or is empty(only characters, numbers and underscores are allowed)");
-                        System.out.println("ERR02 Name has an invalid format or is empty(only characters, numbers and underscores are allowed)");
+                    chatServer.sendFileToClient(this, command[1], command[2], command[3]); //Send the file
+                    ClientHandler receiverClient = chatServer.getClientByName(command[1]);
+                    new ClientFileHandler(this, receiverClient, fileSocket).start();
                 }
                 break;
 
