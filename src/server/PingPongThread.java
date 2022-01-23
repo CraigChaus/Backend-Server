@@ -6,8 +6,8 @@ import java.io.PrintWriter;
 public class PingPongThread extends Thread{
     private final OutputStream outputStream;
 
-    //TODO: For testing please turn this to false before running the automated tests
-    private  boolean active = false;
+    // For testing please turn this to false before running the automated tests
+    private  boolean active = true;
 
     public PingPongThread(OutputStream outputStream) {
         this.outputStream = outputStream;
