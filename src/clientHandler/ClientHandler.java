@@ -51,10 +51,11 @@ public class ClientHandler extends Thread {
                 String receivedMessage = serverReader.readLine();
 
                 //TODO: FIX PING PONG
-//                if (receivedMessage.equals("PONG")) {
-//                    System.out.println("<<<< PONG");
-//                } else {
+                if (receivedMessage.equals("PONG")) {
+                    System.out.println("<<<< PONG");
+                } else {
                     processMessage(receivedMessage);
+                }
 
 
             } catch (IOException e) {
