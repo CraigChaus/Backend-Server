@@ -39,9 +39,9 @@ public class ChatServer {
             ClientHandler clientHandler = new ClientHandler(socket,this, fileSocket);
             clientHandler.start();
 
-//            // TODO: Start a ping thread for each connecting client. NEEDS to be fixed
-//            PingPongThread pongThread = new PingPongThread(socket.getOutputStream());
-//            pongThread.start();
+          // TODO: Start a ping thread for each connecting client. NEEDS to be fixed
+          PingPongThread pongThread = new PingPongThread(socket.getOutputStream());
+          pongThread.start();
         }
     }
 
