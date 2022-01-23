@@ -18,14 +18,13 @@ public class PingPongThread extends Thread{
 
             writer.println("PING");
             writer.flush();
-//            System.out.println(">>>> PING");
+            System.out.println(">>>> PING");
 
             try {
                 Thread.sleep(3000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-
         }
     }
 }

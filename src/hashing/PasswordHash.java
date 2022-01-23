@@ -10,6 +10,13 @@ import java.security.spec.InvalidKeySpecException;
 
 public class PasswordHash {
 
+    /**
+     * Method to hash password using PBKDF2 hashing algorithm
+     * @param password to be hashed
+     * @return string format of hashed password
+     * @throws NoSuchAlgorithmException when algorithm doesn't exist
+     * @throws InvalidKeySpecException when the key spec is wrong
+     */
     public String hashPassword(String password)
             throws NoSuchAlgorithmException, InvalidKeySpecException
     {
@@ -21,7 +28,14 @@ public class PasswordHash {
         return toHex(salt) + ":" +  toHex(hash);
     }
 
-
+    /**
+     * Method to check if the input password is correct or not
+     * @param password to compare to stored password
+     * @param goodHash that hashed password that was stored for that client
+     * @return whether password is correct or not
+     * @throws NoSuchAlgorithmException when the algorithm does not exist
+     * @throws InvalidKeySpecException when the key spec does not exist
+     */
     public boolean checkPassword(String password, String goodHash)
             throws NoSuchAlgorithmException, InvalidKeySpecException
     {
@@ -37,7 +51,6 @@ public class PasswordHash {
             diff |= hash[i] ^ hashedPasswordToCheck[i];
 
         return diff == 0;
-
     }
 
     private byte[] hashUsingPBKDF2(char[] password, byte[] salt, int bytes)

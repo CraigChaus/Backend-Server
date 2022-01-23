@@ -16,20 +16,20 @@ public class Group {
         return groupName;
     }
 
-    public void setGroupName(String groupName) {
-        this.groupName = groupName;
-    }
-
     public ArrayList<ClientHandler> getClientsInGroup() {
         return clientsInGroup;
     }
 
+    /**
+     * Method to check if client is in the created group
+     * @param clientHandler name of the client
+     * @return
+     */
     public boolean addToGroup(ClientHandler clientHandler){
         if (!clientsInGroup.contains(clientHandler)) {
             clientsInGroup.add(clientHandler);
             return true;
         }
-
         return false;
     }
 

@@ -26,13 +26,6 @@ public class ClientFileHandler extends Thread{
             try {
                 DataInputStream dataInputStream = new DataInputStream(fileSocket.getInputStream());
 
-//                int filenameLength = dataInputStream.readInt();
-//
-//                if (filenameLength > 0) {
-//                    byte[] filenameBytes = new byte[filenameLength];
-//                    dataInputStream.readFully(filenameBytes, 0, filenameBytes.length);
-//                    String filename = new String(filenameBytes);
-
                     System.out.println("Receiver of the file is: " + receiver);
 
                     int fileLength = dataInputStream.readInt();
@@ -45,7 +38,6 @@ public class ClientFileHandler extends Thread{
                         dataInputStream.readFully(fileBytes, 0, fileBytes.length);
 
                         System.out.println("File bytes: " + Arrays.toString(fileBytes));
-//                        System.out.println("Filename: " + filename);
                         System.out.println("Text of the file: " + new String(fileBytes));
 
                         // Send file to receiver
@@ -53,7 +45,6 @@ public class ClientFileHandler extends Thread{
                     } else {
                         System.out.println("File bytes length is 0");
                     }
-//                }
 
             } catch (IOException e) {
                 try {
